@@ -123,3 +123,11 @@ CREATE TABLE IF NOT EXISTS creator_applications (
   status TEXT NOT NULL DEFAULT 'pending',
   created_at INTEGER NOT NULL
 );
+
+-- Hourly automation: each cron run appends one spotlight row so the home page can surface a fresh pick every hour.
+CREATE TABLE IF NOT EXISTS hourly_featured (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  game_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_hourly_featured_created ON hourly_featured(created_at DESC);

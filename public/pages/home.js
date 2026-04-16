@@ -1,8 +1,7 @@
 import { h, AdSlot, api, toast } from '../core.js';
-import { GAMES } from '../games/index.js';
+import { GAMES, findGame } from '../games/index.js';
 
 export function HomePage() {
-  const featured = GAMES.slice(0, 8);
 
   const onNewsletter = async (e) => {
     e.preventDefault();
@@ -15,7 +14,7 @@ export function HomePage() {
     } catch (err) { toast(err.message, 'error'); }
   };
 
-  return h('div', {},
+  const wrap = h('div', {},
     // Hero
     h('section', { class: 'hero' },
       h('div', { class: 'container hero-content' },
@@ -51,7 +50,7 @@ export function HomePage() {
           ),
           h('a', { href: '/games', 'data-link': true, class: 'btn btn-sm' }, 'See all →')
         ),
-        h('div', { class: 'grid' }, ...featured.map(GameCard))
+        h('div', { id: 'featured-grid', class: 'grid' }, h('div', { class: 'panel', style: 'grid-column: 1 / -1;' }, 'Loading featured games…'))
       )
     ),
 
@@ -136,6 +135,28 @@ export function HomePage() {
       )
     ),
   );
+
+  const grid = wrap.querySelector('#featured-grid');
+  if (grid) {
+    api('/api/home/featured')
+      .then(({ order, highlightId }) => {
+        grid.innerHTML = '';
+        const byId = Object.fromEntries(GAMES.map((g) => [g.id, g]));
+        for (const id of order) {
+          const g = byId[id] || findGame(id);
+          if (g) grid.appendChild(GameCard(g, highlightId));
+        }
+        if (!grid.children.length) {
+          GAMES.slice(0, 8).forEach((g) => grid.appendChild(GameCard(g, null)));
+        }
+      })
+      .catch(() => {
+        grid.innerHTML = '';
+        GAMES.slice(0, 8).forEach((g) => grid.appendChild(GameCard(g, null)));
+      });
+  }
+
+  return wrap;
 }
 
 function Stat(n, l) {
@@ -153,10 +174,14 @@ function Feature(emoji, title, text) {
   );
 }
 
-export function GameCard(g) {
+export function GameCard(g, hourlyHighlightId = null) {
   const badges = [];
   if (g.multiplayer) badges.push(h('span', { class: 'badge badge-mp' }, 'Multiplayer'));
-  if (g.new) badges.push(h('span', { class: 'badge badge-new' }, 'New'));
+  if (hourlyHighlightId && g.id === hourlyHighlightId) {
+    badges.push(h('span', { class: 'badge badge-new' }, 'New this hour'));
+  } else if (g.new) {
+    badges.push(h('span', { class: 'badge badge-new' }, 'New'));
+  }
 
   return h('a', { href: `/games/${g.id}`, 'data-link': true, class: 'card' },
     h('div', { class: 'card-thumb' },

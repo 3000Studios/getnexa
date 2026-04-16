@@ -97,6 +97,47 @@ async function requireAuth(c: any, next: any) {
 // ---------- health ----------
 app.get('/api/health', (c) => c.json({ ok: true, ts: Date.now(), site: c.env.SITE_NAME }));
 
+/** Default order for /games catalog; hourly spotlight reorders by recency from D1. */
+const HOME_PAGE_GAME_ORDER = [
+  'snake',
+  '2048',
+  'tetris',
+  'memory',
+  'breakout',
+  'minesweeper',
+  'tictactoe',
+  'pong',
+] as const;
+
+app.get('/api/home/featured', async (c) => {
+  const grouped = await c.env.DB.prepare(
+    `SELECT game_id, MAX(created_at) AS last_at FROM hourly_featured GROUP BY game_id ORDER BY last_at DESC`
+  ).all<{ game_id: string; last_at: number }>();
+  const latest = await c.env.DB.prepare('SELECT game_id FROM hourly_featured ORDER BY id DESC LIMIT 1').first<{
+    game_id: string;
+  }>();
+
+  const seen = new Set<string>();
+  const order: string[] = [];
+  for (const row of grouped.results || []) {
+    if (!seen.has(row.game_id)) {
+      seen.add(row.game_id);
+      order.push(row.game_id);
+    }
+  }
+  for (const id of HOME_PAGE_GAME_ORDER) {
+    if (!seen.has(id)) {
+      seen.add(id);
+      order.push(id);
+    }
+  }
+
+  return c.json({
+    order: order.slice(0, 8),
+    highlightId: latest?.game_id ?? null,
+  });
+});
+
 // ---------- auth ----------
 app.post('/api/auth/signup', async (c) => {
   const body = await c.req.json().catch(() => ({}));
@@ -544,4 +585,17 @@ app.get('/sitemap.xml', (c) => {
 // Fallback to static assets (SPA)
 app.all('*', async (c) => c.env.ASSETS.fetch(c.req.raw));
 
-export default app;
+async function appendHourlySpotlight(env: Bindings): Promise<void> {
+  const row = await env.DB.prepare('SELECT COUNT(*) AS c FROM hourly_featured').first<{ c: number }>();
+  const n = row?.c ?? 0;
+  const gameId = HOME_PAGE_GAME_ORDER[n % HOME_PAGE_GAME_ORDER.length];
+  const now = Date.now();
+  await env.DB.prepare('INSERT INTO hourly_featured (game_id, created_at) VALUES (?, ?)').bind(gameId, now).run();
+}
+
+export default {
+  fetch: app.fetch,
+  async scheduled(_event: ScheduledEvent, env: Bindings, _ctx: ExecutionContext): Promise<void> {
+    await appendHourlySpotlight(env);
+  },
+};

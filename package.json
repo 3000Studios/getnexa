@@ -9,6 +9,8 @@
     "db:init": "wrangler d1 execute getnexa-db --file=./schema.sql --remote",
     "db:init-local": "wrangler d1 execute getnexa-db --file=./schema.sql --local",
     "db:migrate": "wrangler d1 execute getnexa-db --file=./migration-001.sql --remote --yes",
+    "db:migrate-002": "wrangler d1 execute getnexa-db --file=./migration-002-hourly-featured.sql --remote --yes",
+    "db:migrate-002-local": "wrangler d1 execute getnexa-db --file=./migration-002-hourly-featured.sql --local --yes",
     "predeploy": "npm run db:init || true",
     "tail": "wrangler tail"
   },
