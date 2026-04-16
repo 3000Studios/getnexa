@@ -185,11 +185,28 @@ export function toast(message, type = '') {
   setTimeout(() => t.remove(), 3500);
 }
 
-export function AdSlot(size = '728x90', label = 'Advertisement') {
-  // AdSense placeholder. Once approved, replace with proper <ins class="adsbygoogle"> unit.
-  return h('div', { class: 'ad-slot', 'aria-label': label },
-    h('small', {}, `${label} (${size})`),
-  );
+// Google AdSense responsive ad unit (ca-pub-5800977493749262).
+// When AdSense approves the site, create ad units and pass slot IDs here,
+// OR just enable Auto Ads in the AdSense dashboard — the script in <head>
+// will handle placement automatically. Until a slotId is provided, we keep
+// a reserved, styled container so the layout doesn't jump.
+export function AdSlot(size = '728x90', label = 'Advertisement', slotId = '') {
+  const wrap = h('div', { class: 'ad-slot', 'aria-label': label });
+  if (slotId) {
+    const ins = document.createElement('ins');
+    ins.className = 'adsbygoogle';
+    ins.style.display = 'block';
+    ins.style.width = '100%';
+    ins.setAttribute('data-ad-client', 'ca-pub-5800977493749262');
+    ins.setAttribute('data-ad-slot', slotId);
+    ins.setAttribute('data-ad-format', 'auto');
+    ins.setAttribute('data-full-width-responsive', 'true');
+    wrap.appendChild(ins);
+    queueMicrotask(() => { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch {} });
+  } else {
+    wrap.appendChild(h('small', {}, `${label} (${size})`));
+  }
+  return wrap;
 }
 
 export async function api(path, opts = {}) {

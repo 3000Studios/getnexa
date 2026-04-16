@@ -324,9 +324,10 @@ app.get('/api/mp/:gameId/:roomId', async (c) => {
 });
 
 // ---------- ads.txt for AdSense ----------
+// Note: /ads.txt is served primarily from public/ads.txt as a static asset.
+// This Worker route is a fallback to guarantee the file is always served correctly.
 app.get('/ads.txt', (c) => {
-  // Replace pub-XXXXXXXXXXXXXXXX with your AdSense publisher ID once approved.
-  return c.text('google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0\n', 200, { 'Content-Type': 'text/plain' });
+  return c.text('google.com, pub-5800977493749262, DIRECT, f08c47fec0942fa0\n', 200, { 'Content-Type': 'text/plain' });
 });
 
 app.get('/robots.txt', (c) => {
