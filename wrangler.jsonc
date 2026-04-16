@@ -7,14 +7,17 @@
   "account_id": "d6ec056b27a57bcf807a46b2e3379d60",
   "observability": {
     "enabled": true,
-    "head_sampling_rate": 1
+    "head_sampling_rate": 1,
+    "logs": { "enabled": true }
   },
   "workers_dev": true,
   "preview_urls": true,
+  "placement": { "mode": "smart" },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/*.html", "/", "/index.html"]
   },
   "d1_databases": [
     {

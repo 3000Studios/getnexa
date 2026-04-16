@@ -1,22 +1,46 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0b0f1a"/>
-      <stop offset="1" stop-color="#172142"/>
+      <stop offset="0" stop-color="#05091a"/>
+      <stop offset="1" stop-color="#1a1240"/>
     </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="acc" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#7c5cff"/>
+      <stop offset=".5" stop-color="#5b8cff"/>
       <stop offset="1" stop-color="#24d1a1"/>
     </linearGradient>
+    <linearGradient id="hot" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff5b6b"/>
+      <stop offset="1" stop-color="#ffb020"/>
+    </linearGradient>
+    <radialGradient id="orb1" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7c5cff" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#7c5cff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orb2" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#24d1a1" stop-opacity=".8"/>
+      <stop offset="1" stop-color="#24d1a1" stop-opacity="0"/>
+    </radialGradient>
   </defs>
   <rect width="1200" height="630" fill="url(#bg)"/>
-  <circle cx="1000" cy="120" r="220" fill="#7c5cff" opacity=".2"/>
-  <circle cx="150" cy="500" r="260" fill="#24d1a1" opacity=".15"/>
-  <g transform="translate(90,220)">
-    <rect width="110" height="110" rx="26" fill="url(#accent)"/>
-    <text x="55" y="80" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI" font-size="72" font-weight="900" fill="#0b0f1a" text-anchor="middle">N</text>
+  <circle cx="1000" cy="140" r="260" fill="url(#orb1)"/>
+  <circle cx="150" cy="520" r="300" fill="url(#orb2)"/>
+  <!-- grid -->
+  <g stroke="#2a3b65" stroke-width=".5" opacity=".3">
+    <line x1="0" y1="500" x2="1200" y2="500"/>
+    <line x1="0" y1="530" x2="1200" y2="530"/>
+    <line x1="0" y1="560" x2="1200" y2="560"/>
+    <line x1="0" y1="590" x2="1200" y2="590"/>
   </g>
-  <text x="230" y="290" font-family="ui-sans-serif, system-ui" font-size="84" font-weight="900" fill="#fff">Nexa Arcade</text>
-  <text x="230" y="360" font-family="ui-sans-serif, system-ui" font-size="36" fill="#a4b6e7">Free browser games � live multiplayer � leaderboards</text>
-  <text x="230" y="420" font-family="ui-sans-serif, system-ui" font-size="28" fill="#8a94b2">getnexa.space</text>
+  <!-- logo mark -->
+  <g transform="translate(80,200)">
+    <path d="M70 0 L140 70 L70 140 L0 70 Z" fill="url(#acc)" stroke="url(#hot)" stroke-width="3"/>
+    <path d="M30 110 L30 40 L45 40 L95 90 L95 40 L110 40 L110 110 L95 110 L45 60 L45 110 Z" fill="#05091a"/>
+    <circle cx="125" cy="15" r="7" fill="url(#hot)"/>
+  </g>
+  <!-- wordmark -->
+  <text x="260" y="310" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="110" font-weight="900" fill="#ffffff" letter-spacing="-3">NEXA</text>
+  <text x="260" y="380" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="36" font-weight="700" fill="url(#acc)" letter-spacing="6">A R C A D E</text>
+  <text x="260" y="440" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" fill="#a4b6e7">Free browser games · live multiplayer · tournaments</text>
+  <text x="260" y="485" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="24" fill="#8a94b2">getnexa.space</text>
 </svg>

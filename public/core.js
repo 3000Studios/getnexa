@@ -1,4 +1,5 @@
 // Tiny vanilla framework: hyperscript + router + shared state + toast
+import { mountBackground, setRoute as setBgRoute } from './bg-3d.js';
 
 export const state = {
   user: null,
@@ -55,6 +56,8 @@ export function render(routes) {
   app.innerHTML = '';
   const url = new URL(location.href);
   const match = matchRoute(routes, url.pathname);
+  // Ensure animated background is mounted and updated per route
+  try { mountBackground(); setBgRoute(url.pathname); } catch {}
 
   app.appendChild(Header());
   const main = document.createElement('main');
@@ -90,14 +93,15 @@ function Header() {
   return h('header', { class: 'site-header' },
     h('div', { class: 'container nav' },
       h('a', { href: '/', 'data-link': true, class: 'brand' },
-        h('div', { class: 'logo' }, 'N'),
+        h('div', { class: 'logo-mark' }, 'N'),
         h('span', {}, 'Nexa Arcade')
       ),
       h('nav', { class: 'nav-links' },
         h('a', { href: '/games', 'data-link': true }, 'Games'),
+        h('a', { href: '/tournaments', 'data-link': true }, 'Tournaments'),
         h('a', { href: '/leaderboards', 'data-link': true }, 'Leaderboards'),
         h('a', { href: '/shop', 'data-link': true }, 'Shop'),
-        h('a', { href: '/about', 'data-link': true }, 'About'),
+        h('a', { href: '/creators', 'data-link': true }, 'Creators'),
       ),
       h('div', { class: 'nav-spacer' }),
       h('div', { class: 'nav-cta' },
@@ -122,7 +126,7 @@ function Footer() {
       h('div', { class: 'footer-grid' },
         h('div', { class: 'footer-col' },
           h('div', { class: 'brand', style: 'margin-bottom: 12px;' },
-            h('div', { class: 'logo' }, 'N'),
+            h('div', { class: 'logo-mark' }, 'N'),
             h('span', {}, 'Nexa Arcade')
           ),
           h('p', { style: 'margin:0; max-width: 360px;' },
@@ -131,17 +135,15 @@ function Footer() {
         h('div', { class: 'footer-col' },
           h('h4', {}, 'Play'),
           h('a', { href: '/games', 'data-link': true }, 'All Games'),
-          h('a', { href: '/games/snake', 'data-link': true }, 'Snake'),
-          h('a', { href: '/games/2048', 'data-link': true }, '2048'),
-          h('a', { href: '/games/tetris', 'data-link': true }, 'Tetris'),
-          h('a', { href: '/games/pong', 'data-link': true }, 'Pong'),
+          h('a', { href: '/tournaments', 'data-link': true }, 'Tournaments'),
           h('a', { href: '/leaderboards', 'data-link': true }, 'Leaderboards'),
+          h('a', { href: '/shop', 'data-link': true }, 'Shop'),
         ),
         h('div', { class: 'footer-col' },
-          h('h4', {}, 'Company'),
+          h('h4', {}, 'Creators'),
+          h('a', { href: '/creators', 'data-link': true }, 'Nexa Studio'),
           h('a', { href: '/about', 'data-link': true }, 'About'),
           h('a', { href: '/contact', 'data-link': true }, 'Contact'),
-          h('a', { href: '/shop', 'data-link': true }, 'Shop'),
         ),
         h('div', { class: 'footer-col' },
           h('h4', {}, 'Legal'),

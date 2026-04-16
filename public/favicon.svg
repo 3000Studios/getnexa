@@ -2,9 +2,15 @@
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#7c5cff"/>
+      <stop offset=".5" stop-color="#5b8cff"/>
       <stop offset="1" stop-color="#24d1a1"/>
     </linearGradient>
+    <linearGradient id="stroke" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff5b6b"/>
+      <stop offset="1" stop-color="#ffb020"/>
+    </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="14" fill="url(#g)"/>
-  <path d="M18 46V18h6l16 22V18h6v28h-6L24 24v22z" fill="#0b0f1a" font-weight="900"/>
+  <path d="M32 2 L62 32 L32 62 L2 32 Z" fill="url(#g)" stroke="url(#stroke)" stroke-width="2"/>
+  <path d="M18 44 L18 20 L24 20 L42 38 L42 20 L48 20 L48 44 L42 44 L24 26 L24 44 Z" fill="#0b0f1a"/>
+  <circle cx="54" cy="14" r="3.5" fill="url(#stroke)"/>
 </svg>

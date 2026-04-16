@@ -74,3 +74,52 @@ CREATE TABLE IF NOT EXISTS newsletter (
   email TEXT PRIMARY KEY,
   created_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS tournaments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  game_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  entry_cents INTEGER NOT NULL DEFAULT 0,
+  prize_pool_cents INTEGER NOT NULL DEFAULT 0,
+  starts_at INTEGER NOT NULL,
+  ends_at INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'upcoming',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_tournaments_status ON tournaments(status, ends_at);
+
+CREATE TABLE IF NOT EXISTS tournament_entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tournament_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  best_score INTEGER NOT NULL DEFAULT 0,
+  paid INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  UNIQUE (tournament_id, user_id),
+  FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS payouts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  provider TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  reference TEXT,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS creator_applications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  website TEXT,
+  portfolio TEXT,
+  about TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at INTEGER NOT NULL
+);
