@@ -1,0 +1,42 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "getnexa",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "d6ec056b27a57bcf807a46b2e3379d60",
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "workers_dev": true,
+  "preview_urls": true,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "getnexa-db",
+      "database_id": "be349dcb-97da-4327-8361-63a55a7c8305"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "GAME_ROOM", "class_name": "GameRoom" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["GameRoom"] }
+  ],
+  "vars": {
+    "SITE_NAME": "Nexa Arcade",
+    "SITE_URL": "https://getnexa.space"
+  },
+  "routes": [
+    { "pattern": "getnexa.space", "custom_domain": true },
+    { "pattern": "www.getnexa.space", "custom_domain": true }
+  ]
+}

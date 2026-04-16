@@ -1,0 +1,21 @@
+{
+  "name": "getnexa",
+  "version": "1.0.0",
+  "description": "Nexa Arcade - play live HTML5 games, multiplayer, leaderboards, accounts. Hosted on Cloudflare Workers.",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute getnexa-db --file=./schema.sql --remote",
+    "db:init-local": "wrangler d1 execute getnexa-db --file=./schema.sql --local",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "typescript": "^5.7.3",
+    "wrangler": "^4.0.0"
+  }
+}
