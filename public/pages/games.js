@@ -27,8 +27,9 @@ export function GamePage({ params }) {
   if (!game) return h('div', { class: 'container section' }, h('h2', {}, 'Game not found'));
 
   const stageRef = { el: null };
-  const sideRef = { el: null };
   const statsRef = { best: null, level: null };
+  const perksRef = { lives: null, skin: null };
+  const perksState = { extraLives: 0, hasOutfit: false, skin: 'classic' };
 
   async function refreshBest() {
     if (!state.user) { statsRef.best.textContent = '— (log in to save)'; return; }
@@ -53,6 +54,41 @@ export function GamePage({ params }) {
     } catch (e) { toast(e.message, 'error'); }
   }
 
+  async function refreshPerks() {
+    if (!state.user) {
+      perksState.extraLives = 0;
+      perksState.hasOutfit = false;
+      perksState.skin = 'classic';
+      if (perksRef.lives) perksRef.lives.textContent = '0';
+      if (perksRef.skin) perksRef.skin.textContent = 'Classic';
+      return;
+    }
+    try {
+      const res = await api('/api/inventory');
+      const qty = Object.fromEntries((res.inventory || []).map((it) => [it.item_id, it.quantity]));
+      perksState.extraLives = Number(qty.extra_life_pack || 0) + Number(qty.extra_life_1 || 0);
+      perksState.hasOutfit = Boolean(qty.theme_neon || qty.outfit_starter_99);
+      const preferred = localStorage.getItem('snake_skin') || 'classic';
+      perksState.skin = perksState.hasOutfit && preferred === 'neon' ? 'neon' : 'classic';
+      if (perksRef.lives) perksRef.lives.textContent = String(perksState.extraLives);
+      if (perksRef.skin) perksRef.skin.textContent = perksState.skin === 'neon' ? 'Neon (owned)' : 'Classic';
+    } catch {}
+  }
+
+  function buyStripe(productId) {
+    if (!state.user) { toast('Please log in', ''); route('/login'); return; }
+    api('/api/pay/stripe/checkout', { method: 'POST', body: { product_id: productId } })
+      .then((res) => { if (res.url) location.href = res.url; })
+      .catch((e) => toast(e.message, 'error'));
+  }
+
+  function buyPaypal(productId) {
+    if (!state.user) { toast('Please log in', ''); route('/login'); return; }
+    api('/api/pay/paypal/create', { method: 'POST', body: { product_id: productId } })
+      .then((res) => { if (res.url) location.href = res.url; })
+      .catch((e) => toast(e.message, 'error'));
+  }
+
   const page = h('div', { class: 'container section' },
     h('div', { style: 'display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;' },
       h('div', {},
@@ -72,6 +108,32 @@ export function GamePage({ params }) {
           !state.user && h('div', { style: 'margin-top:10px;' },
             h('a', { href: '/signup', 'data-link': true, class: 'btn btn-primary btn-block' }, 'Sign up to save scores'))
         ),
+        h('div', { class: 'panel' },
+          h('h3', {}, 'Game Perks'),
+          h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Extra lives'), h('span', { ref: el => perksRef.lives = el }, '0')),
+          h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Skin'), h('span', { ref: el => perksRef.skin = el }, 'Classic')),
+          h('p', { style: 'margin-top: 10px;' }, 'Cheap unlocks for this game:'),
+          h('div', { class: 'row', style: 'margin-top: 6px;' },
+            h('button', { class: 'btn btn-sm btn-primary', onClick: () => buyStripe('extra_life_pack') }, '$0.99 Extra Lives'),
+            h('button', { class: 'btn btn-sm', onClick: () => buyPaypal('extra_life_pack'), style: 'background:#ffc439;color:#000;border-color:transparent;font-weight:800;' }, 'PayPal')
+          ),
+          h('div', { class: 'row', style: 'margin-top: 8px;' },
+            h('button', { class: 'btn btn-sm btn-primary', onClick: () => buyStripe('outfit_starter_99') }, '$0.99 Outfit'),
+            h('button', { class: 'btn btn-sm', onClick: () => buyPaypal('outfit_starter_99'), style: 'background:#ffc439;color:#000;border-color:transparent;font-weight:800;' }, 'PayPal')
+          ),
+          game.id === 'snake' && h('div', { class: 'row', style: 'margin-top: 8px;' },
+            h('button', {
+              class: 'btn btn-sm',
+              onClick: async () => {
+                if (!perksState.hasOutfit) { toast('Buy the outfit pack first.', ''); return; }
+                perksState.skin = 'neon';
+                localStorage.setItem('snake_skin', 'neon');
+                if (perksRef.skin) perksRef.skin.textContent = 'Neon (owned)';
+                toast('Neon skin equipped for Snake.', 'success');
+              }
+            }, 'Equip Neon Skin')
+          )
+        ),
         AdSlot('300x250', 'Sponsored'),
         h('div', { class: 'panel' },
           h('h3', {}, 'Tips'),
@@ -83,8 +145,28 @@ export function GamePage({ params }) {
   // mount game async (after DOM attached)
   queueMicrotask(() => {
     try {
-      game.mount(stageRef.el, { onScore, user: state.user });
+      game.mount(stageRef.el, {
+        onScore,
+        user: state.user,
+        perks: {
+          getExtraLives: () => perksState.extraLives,
+          consumeExtraLife: () => {
+            if (!state.user || perksState.extraLives <= 0) return false;
+            perksState.extraLives -= 1;
+            if (perksRef.lives) perksRef.lives.textContent = String(perksState.extraLives);
+            api('/api/inventory/use', { method: 'POST', body: { item_id: 'extra_life_pack', amount: 1 } })
+              .catch(async () => {
+                // Fallback for old redemptions from coin shop.
+                try { await api('/api/inventory/use', { method: 'POST', body: { item_id: 'extra_life_1', amount: 1 } }); }
+                catch { perksState.extraLives += 1; if (perksRef.lives) perksRef.lives.textContent = String(perksState.extraLives); }
+              });
+            return true;
+          },
+          getSkin: () => perksState.skin,
+        }
+      });
       refreshBest();
+      refreshPerks();
     } catch (e) {
       stageRef.el.appendChild(h('p', { style: 'color: var(--danger);' }, String(e.message || e)));
     }

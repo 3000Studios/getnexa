@@ -97,7 +97,7 @@ async function requireAuth(c: any, next: any) {
 // ---------- health ----------
 app.get('/api/health', (c) => c.json({ ok: true, ts: Date.now(), site: c.env.SITE_NAME }));
 
-/** Default order for /games catalog; hourly spotlight reorders by recency from D1. */
+/** Catalog publish order; cron releases one additional game every hour. */
 const HOME_PAGE_GAME_ORDER = [
   'snake',
   '2048',
@@ -111,29 +111,18 @@ const HOME_PAGE_GAME_ORDER = [
 
 app.get('/api/home/featured', async (c) => {
   const grouped = await c.env.DB.prepare(
-    `SELECT game_id, MAX(created_at) AS last_at FROM hourly_featured GROUP BY game_id ORDER BY last_at DESC`
-  ).all<{ game_id: string; last_at: number }>();
+    `SELECT game_id, MIN(created_at) AS first_at FROM hourly_featured GROUP BY game_id ORDER BY first_at ASC`
+  ).all<{ game_id: string; first_at: number }>();
   const latest = await c.env.DB.prepare('SELECT game_id FROM hourly_featured ORDER BY id DESC LIMIT 1').first<{
     game_id: string;
   }>();
 
-  const seen = new Set<string>();
-  const order: string[] = [];
-  for (const row of grouped.results || []) {
-    if (!seen.has(row.game_id)) {
-      seen.add(row.game_id);
-      order.push(row.game_id);
-    }
-  }
-  for (const id of HOME_PAGE_GAME_ORDER) {
-    if (!seen.has(id)) {
-      seen.add(id);
-      order.push(id);
-    }
-  }
+  const order = (grouped.results || []).map((row) => row.game_id);
+  // If cron has not run yet, ship a sane initial state.
+  if (!order.length) order.push(HOME_PAGE_GAME_ORDER[0]);
 
   return c.json({
-    order: order.slice(0, 8),
+    order,
     highlightId: latest?.game_id ?? null,
   });
 });
@@ -314,6 +303,7 @@ const PRODUCTS = [
   { id: 'boost_xp_24h', name: '2x XP Boost (24h)', price_cents: 149, type: 'consumable' },
   { id: 'boost_xp_7d', name: '2x XP Boost (7 days)', price_cents: 499, type: 'consumable' },
   { id: 'extra_life_pack', name: 'Extra Lives x10', price_cents: 99, type: 'consumable' },
+  { id: 'outfit_starter_99', name: 'Starter Outfit Pack', price_cents: 99, type: 'cosmetic' },
   { id: 'hint_pack', name: 'Puzzle Hints x20', price_cents: 99, type: 'consumable' },
   { id: 'tournament_entry', name: 'Weekly Tournament Entry', price_cents: 199, type: 'entry' },
   { id: 'custom_room', name: 'Private Multiplayer Room', price_cents: 299, type: 'entry' },
@@ -345,6 +335,26 @@ app.get('/api/inventory', requireAuth, async (c) => {
   const rows = await c.env.DB.prepare('SELECT item_id, quantity, acquired_at FROM inventory WHERE user_id = ?')
     .bind(user.id).all();
   return c.json({ inventory: rows.results });
+});
+
+app.post('/api/inventory/use', requireAuth, async (c) => {
+  const user = (c as any).user;
+  const body = await c.req.json().catch(() => ({}));
+  const itemId = (body.item_id || '').toString();
+  const amount = Math.max(1, parseInt(body.amount, 10) || 1);
+  if (!itemId) return c.json({ error: 'Missing item_id' }, 400);
+
+  const row = await c.env.DB.prepare('SELECT quantity FROM inventory WHERE user_id = ? AND item_id = ?')
+    .bind(user.id, itemId).first<{ quantity: number }>();
+  const qty = row?.quantity ?? 0;
+  if (qty < amount) return c.json({ error: 'Not enough inventory' }, 409);
+
+  await c.env.DB.prepare('UPDATE inventory SET quantity = quantity - ? WHERE user_id = ? AND item_id = ?')
+    .bind(amount, user.id, itemId).run();
+  await c.env.DB.prepare('DELETE FROM inventory WHERE user_id = ? AND item_id = ? AND quantity <= 0')
+    .bind(user.id, itemId).run();
+
+  return c.json({ ok: true, item_id: itemId, remaining: qty - amount });
 });
 
 /* ─── Stripe Checkout ──────────────────────────── */
@@ -586,9 +596,13 @@ app.get('/sitemap.xml', (c) => {
 app.all('*', async (c) => c.env.ASSETS.fetch(c.req.raw));
 
 async function appendHourlySpotlight(env: Bindings): Promise<void> {
-  const row = await env.DB.prepare('SELECT COUNT(*) AS c FROM hourly_featured').first<{ c: number }>();
-  const n = row?.c ?? 0;
-  const gameId = HOME_PAGE_GAME_ORDER[n % HOME_PAGE_GAME_ORDER.length];
+  const releasedRows = await env.DB.prepare(
+    `SELECT game_id FROM hourly_featured GROUP BY game_id ORDER BY MIN(created_at) ASC`
+  ).all<{ game_id: string }>();
+  const released = new Set((releasedRows.results || []).map((row) => row.game_id));
+  const gameId = HOME_PAGE_GAME_ORDER.find((id) => !released.has(id));
+  // All catalog games are already published.
+  if (!gameId) return;
   const now = Date.now();
   await env.DB.prepare('INSERT INTO hourly_featured (game_id, created_at) VALUES (?, ?)').bind(gameId, now).run();
 }

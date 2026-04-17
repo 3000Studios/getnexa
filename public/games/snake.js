@@ -1,4 +1,4 @@
-export function mountSnake(root, { onScore }) {
+export function mountSnake(root, { onScore, perks = {} }) {
   root.innerHTML = '';
   const W = 24, H = 20, CELL = 22;
   const canvas = document.createElement('canvas');
@@ -37,11 +37,35 @@ export function mountSnake(root, { onScore }) {
     }
   }
 
+  function reviveFromExtraLife() {
+    const head = snake[0];
+    const center = { x: Math.floor(W / 2), y: Math.floor(H / 2) };
+    snake = [center, { x: center.x - 1, y: center.y }, { x: center.x - 2, y: center.y }];
+    dir = { x: 1, y: 0 };
+    next = dir;
+    // Small score tradeoff for using a life.
+    score = Math.max(0, score - 5);
+    document.getElementById('sc').textContent = String(score);
+    return head;
+  }
+
+  function handleDeathOrRevive() {
+    if (typeof perks.consumeExtraLife === 'function' && typeof perks.getExtraLives === 'function' && perks.getExtraLives() > 0) {
+      const used = perks.consumeExtraLife();
+      if (used) {
+        reviveFromExtraLife();
+        return true;
+      }
+    }
+    alive = false;
+    return false;
+  }
+
   function step() {
     dir = next;
     const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
-    if (head.x < 0 || head.x >= W || head.y < 0 || head.y >= H) { alive = false; return; }
-    if (snake.some(s => s.x === head.x && s.y === head.y)) { alive = false; return; }
+    if (head.x < 0 || head.x >= W || head.y < 0 || head.y >= H) { handleDeathOrRevive(); return; }
+    if (snake.some(s => s.x === head.x && s.y === head.y)) { handleDeathOrRevive(); return; }
     snake.unshift(head);
     if (head.x === food.x && head.y === food.y) {
       score += 10;
@@ -56,10 +80,12 @@ export function mountSnake(root, { onScore }) {
   function draw() {
     ctx.fillStyle = '#05091a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const skin = typeof perks.getSkin === 'function' ? perks.getSkin() : 'classic';
     ctx.fillStyle = '#24d1a1';
     for (let i = 0; i < snake.length; i++) {
       const s = snake[i];
-      ctx.fillStyle = i === 0 ? '#7c5cff' : `hsl(${150 + i * 3}, 60%, 55%)`;
+      if (skin === 'neon') ctx.fillStyle = i === 0 ? '#ff36d8' : `hsl(${295 + i * 2}, 85%, 55%)`;
+      else ctx.fillStyle = i === 0 ? '#7c5cff' : `hsl(${150 + i * 3}, 60%, 55%)`;
       ctx.fillRect(s.x * CELL + 1, s.y * CELL + 1, CELL - 2, CELL - 2);
     }
     ctx.fillStyle = '#ff5b6b';
