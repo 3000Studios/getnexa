@@ -17,25 +17,58 @@ export function HomePage() {
   const wrap = h('div', {},
     // Hero
     h('section', { class: 'hero' },
+      h('div', { class: 'hero-aurora hero-aurora-a' }),
+      h('div', { class: 'hero-aurora hero-aurora-b' }),
+      h('div', { class: 'hero-gridlines' }),
       h('div', { class: 'container hero-content' },
+        h('div', { class: 'hero-orbit hero-orbit-a' }),
+        h('div', { class: 'hero-orbit hero-orbit-b' }),
         h('img', { src: '/favicon.svg', alt: 'Nexa Arcade logo', class: 'hero-logo', width: 100, height: 100 }),
         h('div', { class: 'hero-kicker' },
           h('span', { class: 'dot' }),
-          h('span', {}, 'Live multiplayer · Tournaments · Cloud saves')
+          h('span', {}, 'Live multiplayer · Tournaments · Cloud saves · Hourly game drops')
         ),
         h('h1', {}, 'Play. Compete. ', h('span', { class: 'accent' }, 'Conquer.')),
         h('p', { class: 'lead' },
-          'Nexa Arcade is the modern browser gaming hub. Real-time multiplayer, paid tournaments with prize pools, live leaderboards, and cross-device saves — all free to start. No downloads. Just play.'),
+          'Nexa Arcade is the modern browser gaming hub. Real-time multiplayer, paid tournaments with prize pools, live leaderboards, cross-device saves, and a release queue that ships new premium arcade experiences every hour.'),
         h('div', { class: 'hero-cta' },
           h('a', { href: '/games', 'data-link': true, class: 'btn btn-primary btn-lg' }, '▶  Play Now'),
           h('a', { href: '/tournaments', 'data-link': true, class: 'btn btn-lg' }, '🏆 Tournaments'),
           h('a', { href: '/signup', 'data-link': true, class: 'btn btn-lg btn-ghost' }, 'Free Account'),
         ),
+        h('div', { class: 'hero-marquee', 'aria-hidden': true },
+          h('div', { class: 'hero-marquee-track' },
+            h('span', {}, 'Neon hover-runners'),
+            h('span', {}, 'Cinematic space defense'),
+            h('span', {}, 'Live tournament ladders'),
+            h('span', {}, 'Hourly arcade releases'),
+            h('span', {}, 'Creator-ready monetization'),
+            h('span', {}, 'Neon hover-runners'),
+            h('span', {}, 'Cinematic space defense'),
+            h('span', {}, 'Live tournament ladders'),
+          )
+        ),
         h('div', { class: 'hero-stats' },
-          Stat('8+', 'Games'),
+          Stat('10+', 'Games'),
           Stat('∞', 'Leaderboards'),
           Stat('0$', 'To start'),
-          Stat('24/7', 'Live'),
+          Stat('1/hr', 'Releases'),
+        )
+      )
+    ),
+
+    h('section', { class: 'section home-spotlight' },
+      h('div', { class: 'container' },
+        h('div', { class: 'section-head' },
+          h('div', {},
+            h('div', { class: 'section-eyebrow' }, 'Fresh on deck'),
+            h('h2', {}, 'Hourly Release Pipeline')
+          )
+        ),
+        h('div', { class: 'release-grid' },
+          ReleasePanel('This hour', 'New games are promoted automatically from the release queue every hour, not just re-labeled in place.', 'Live queue'),
+          ReleasePanel('Visual bar', 'The new flagship titles lean into richer lighting, particles, parallax, and stronger arcade silhouettes.', 'Better graphics'),
+          ReleasePanel('Retention loop', 'Fresh game drops, tournaments, and stronger card motion keep the front page from feeling static.', 'More return visits'),
         )
       )
     ),
@@ -174,6 +207,15 @@ function Feature(emoji, title, text) {
   );
 }
 
+function ReleasePanel(eyebrow, text, footer) {
+  return h('div', { class: 'release-panel' },
+    h('div', { class: 'release-panel-glow' }),
+    h('div', { class: 'section-eyebrow' }, eyebrow),
+    h('p', { class: 'release-copy' }, text),
+    h('div', { class: 'release-footer' }, footer)
+  );
+}
+
 export function GameCard(g, hourlyHighlightId = null) {
   const badges = [];
   if (g.multiplayer) badges.push(h('span', { class: 'badge badge-mp' }, 'Multiplayer'));
@@ -184,7 +226,9 @@ export function GameCard(g, hourlyHighlightId = null) {
   }
 
   return h('a', { href: `/games/${g.id}`, 'data-link': true, class: 'card' },
-    h('div', { class: 'card-thumb' },
+    h('div', { class: `card-thumb game-art game-art-${g.id}` },
+      h('div', { class: 'art-layer art-layer-a' }),
+      h('div', { class: 'art-layer art-layer-b' }),
       h('div', { class: 'icon', style: 'font-size: 68px;' }, g.emoji),
     ),
     h('div', { class: 'card-body' },

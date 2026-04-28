@@ -8,16 +8,37 @@ import { mountPong } from './pong.js';
 import { mountTicTacToe } from './tictactoe.js';
 import { mountBreakout } from './breakout.js';
 import { mountMinesweeper } from './minesweeper.js';
+import { mountNeonDrift } from './neondrift.js';
+import { mountStarblitz } from './starblitz.js';
 
 export const GAMES = [
   {
-    id: 'snake',
-    name: 'Nexa Snake',
-    short: 'Classic snake — eat, grow, survive.',
-    description: 'The classic snake game — eat the glowing orbs to grow, but don\'t hit the walls or yourself. How long can you survive?',
-    emoji: '🐍',
+    id: 'neondrift',
+    name: 'Neon Drift',
+    short: 'Arcade hover-runner with lane swaps and boost.',
+    description: 'Thread a neon hoverbike through live traffic, chain near-misses, and ride the boost lane for huge survival scores.',
+    emoji: '🏍️',
     multiplayer: false,
     new: true,
+    mount: mountNeonDrift,
+  },
+  {
+    id: 'starblitz',
+    name: 'Starblitz Vanguard',
+    short: 'Cinematic space defense with waves and combos.',
+    description: 'Pilot a vanguard interceptor, shred attack formations, collect energy cores, and survive escalating deep-space assault waves.',
+    emoji: '🚀',
+    multiplayer: false,
+    new: true,
+    mount: mountStarblitz,
+  },
+  {
+    id: 'snake',
+    name: 'Nexa Snake',
+    short: 'Neon survival snake with unlockable skins.',
+    description: 'A sharpened version of the classic: faster pacing, cleaner visuals, and unlockable skins as you push for longer survival runs.',
+    emoji: '🐍',
+    multiplayer: false,
     mount: mountSnake,
   },
   {
@@ -50,8 +71,8 @@ export const GAMES = [
   {
     id: 'breakout',
     name: 'Brick Breaker',
-    short: 'Bounce the ball. Smash the bricks.',
-    description: 'Move the paddle and break all the bricks. Don\'t let the ball fall.',
+    short: 'Glow-lit brick storm with combo rebounds.',
+    description: 'A sharper brick-breaker with glow FX, combo momentum, and cleaner paddle feel built for score-chasing sessions.',
     emoji: '🧱',
     multiplayer: false,
     mount: mountBreakout,
@@ -72,7 +93,6 @@ export const GAMES = [
     description: 'Play live tic-tac-toe against a friend. Share the room code and battle in real time.',
     emoji: '❌',
     multiplayer: true,
-    new: true,
     mount: mountTicTacToe,
   },
   {

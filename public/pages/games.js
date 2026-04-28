@@ -4,9 +4,10 @@ import { GameCard } from './home.js';
 
 export function GamesPage() {
   let query = '';
+  let publishedOrder = GAMES.map((g) => g.id);
   const container = h('div', { class: 'container section' },
     h('h1', {}, 'All Games'),
-    h('p', {}, 'Free browser games, updated weekly. Sign in to save your scores and climb the leaderboards.'),
+    h('p', {}, 'Free browser games with hourly releases. Sign in to save your scores and climb the leaderboards.'),
     h('div', { style: 'margin: 16px 0 20px;' },
       h('input', { placeholder: 'Search games…', class: 'search', style: 'max-width: 360px; padding: 10px 14px; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--border); color: var(--text);', onInput: (e) => { query = e.target.value.toLowerCase(); update(); } })
     ),
@@ -16,9 +17,18 @@ export function GamesPage() {
   function update() {
     const grid = container.querySelector('#games-grid');
     grid.innerHTML = '';
-    const filtered = GAMES.filter(g => !query || g.name.toLowerCase().includes(query) || g.short.toLowerCase().includes(query));
+    const orderedGames = publishedOrder.map((id) => findGame(id)).filter(Boolean);
+    const filtered = orderedGames.filter(g => !query || g.name.toLowerCase().includes(query) || g.short.toLowerCase().includes(query));
     filtered.forEach(g => grid.appendChild(GameCard(g)));
   }
+  api('/api/catalog')
+    .then(({ order }) => {
+      if (Array.isArray(order) && order.length) {
+        publishedOrder = order;
+        update();
+      }
+    })
+    .catch(() => {});
   return container;
 }
 

@@ -97,8 +97,10 @@ async function requireAuth(c: any, next: any) {
 // ---------- health ----------
 app.get('/api/health', (c) => c.json({ ok: true, ts: Date.now(), site: c.env.SITE_NAME }));
 
-/** Catalog publish order; cron releases one additional game every hour. */
-const HOME_PAGE_GAME_ORDER = [
+/** Catalog release queue; cron publishes one additional game every hour. */
+const GAME_RELEASE_QUEUE = [
+  'neondrift',
+  'starblitz',
   'snake',
   '2048',
   'tetris',
@@ -109,21 +111,46 @@ const HOME_PAGE_GAME_ORDER = [
   'pong',
 ] as const;
 
-app.get('/api/home/featured', async (c) => {
-  const grouped = await c.env.DB.prepare(
+const HOME_PAGE_FEATURED_LIMIT = 8;
+
+async function getPublishedCatalog(env: Bindings) {
+  const grouped = await env.DB.prepare(
     `SELECT game_id, MIN(created_at) AS first_at FROM hourly_featured GROUP BY game_id ORDER BY first_at ASC`
   ).all<{ game_id: string; first_at: number }>();
-  const latest = await c.env.DB.prepare('SELECT game_id FROM hourly_featured ORDER BY id DESC LIMIT 1').first<{
+  const latest = await env.DB.prepare('SELECT game_id, created_at FROM hourly_featured ORDER BY id DESC LIMIT 1').first<{
     game_id: string;
+    created_at: number;
   }>();
 
-  const order = (grouped.results || []).map((row) => row.game_id);
-  // If cron has not run yet, ship a sane initial state.
-  if (!order.length) order.push(HOME_PAGE_GAME_ORDER[0]);
+  const order = (grouped.results || []).map((row) => row.game_id).filter((id) => GAME_RELEASE_QUEUE.includes(id as any));
+  if (!order.length) order.push(GAME_RELEASE_QUEUE[0]);
+
+  return {
+    order,
+    latestReleaseId: latest?.game_id ?? order[order.length - 1],
+    latestReleaseAt: latest?.created_at ?? null,
+    upcoming: GAME_RELEASE_QUEUE.filter((id) => !order.includes(id)),
+  };
+}
+
+app.get('/api/catalog', async (c) => {
+  const catalog = await getPublishedCatalog(c.env);
+  return c.json({
+    order: catalog.order,
+    latestReleaseId: catalog.latestReleaseId,
+    latestReleaseAt: catalog.latestReleaseAt,
+    upcomingCount: catalog.upcoming.length,
+  });
+});
+
+app.get('/api/home/featured', async (c) => {
+  const catalog = await getPublishedCatalog(c.env);
 
   return c.json({
-    order,
-    highlightId: latest?.game_id ?? null,
+    order: catalog.order.slice(0, HOME_PAGE_FEATURED_LIMIT),
+    highlightId: catalog.latestReleaseId,
+    latestReleaseAt: catalog.latestReleaseAt,
+    upcomingCount: catalog.upcoming.length,
   });
 });
 
@@ -587,7 +614,7 @@ app.get('/robots.txt', (c) => c.text(`User-agent: *\nAllow: /\nSitemap: https://
 app.get('/sitemap.xml', (c) => {
   const base = 'https://getnexa.space';
   const paths = ['/', '/games', '/tournaments', '/creators', '/about', '/privacy', '/terms', '/contact', '/shop', '/leaderboards',
-    '/games/snake', '/games/tetris', '/games/2048', '/games/memory', '/games/pong', '/games/tictactoe', '/games/breakout', '/games/minesweeper'];
+    '/games/neondrift', '/games/starblitz', '/games/snake', '/games/tetris', '/games/2048', '/games/memory', '/games/pong', '/games/tictactoe', '/games/breakout', '/games/minesweeper'];
   const urls = paths.map(p => `<url><loc>${base}${p}</loc><changefreq>weekly</changefreq></url>`).join('');
   return c.text(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`, 200, { 'Content-Type': 'application/xml' });
 });
@@ -596,12 +623,8 @@ app.get('/sitemap.xml', (c) => {
 app.all('*', async (c) => c.env.ASSETS.fetch(c.req.raw));
 
 async function appendHourlySpotlight(env: Bindings): Promise<void> {
-  const releasedRows = await env.DB.prepare(
-    `SELECT game_id FROM hourly_featured GROUP BY game_id ORDER BY MIN(created_at) ASC`
-  ).all<{ game_id: string }>();
-  const released = new Set((releasedRows.results || []).map((row) => row.game_id));
-  const gameId = HOME_PAGE_GAME_ORDER.find((id) => !released.has(id));
-  // All catalog games are already published.
+  const catalog = await getPublishedCatalog(env);
+  const gameId = catalog.upcoming[0];
   if (!gameId) return;
   const now = Date.now();
   await env.DB.prepare('INSERT INTO hourly_featured (game_id, created_at) VALUES (?, ?)').bind(gameId, now).run();
