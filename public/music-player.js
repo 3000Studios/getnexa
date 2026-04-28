@@ -19,7 +19,6 @@ export async function initMusic() {
       "Daytime TV Raised.mp3",
       "Midnight Grind.mp3",
       "Tropical Bass Land 2.mp3",
-      "Voice to Website.mp3",
       "Wi‑Fi Fridge.mp3",
       "betty boom boom.mp3"
     ];

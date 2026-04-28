@@ -308,12 +308,13 @@ app.get('/api/scores/me/:gameId', requireAuth, async (c) => {
 
 // ---------- activity ----------
 app.get('/api/activity/last', async (c) => {
-  const row = await c.env.DB.prepare(
-    `SELECT u.username, u.display_name, s.game_id, s.created_at
-     FROM scores s JOIN users u ON u.id = s.user_id
-     ORDER BY s.created_at DESC LIMIT 1`
-  ).first<any>();
-  return c.json({ last: row || null });
+  const row = await c.env.DB.prepare('SELECT u.username, u.avatar, s.game_id, s.score, s.created_at FROM scores s JOIN users u ON s.user_id = u.id ORDER BY s.created_at DESC LIMIT 1').first();
+  return c.json({ last: row });
+});
+
+app.get('/api/leaderboards/global', async (c) => {
+  const rows = await c.env.DB.prepare('SELECT username, avatar, xp, level FROM users ORDER BY xp DESC LIMIT 10').all();
+  return c.json({ players: rows.results });
 });
 
 // ---------- game saves ----------
