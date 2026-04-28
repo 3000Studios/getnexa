@@ -1,70 +1,61 @@
-import { h, api, AdSlot, state, route } from '../core.js';
+import { h, api, route } from '../core.js';
 
 export function HomePage() {
-  const container = h('div', { class: 'container section' },
-    h('div', { class: 'hero-content' },
-      h('h1', {}, 'WELCOME TO NEXA'),
-      h('h2', { class: 'text-accent' }, 'THE NEXT GENERATION ARCADE'),
-      h('div', { style: 'display:flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 40px;' },
-        h('a', { href: '/games', 'data-link': true, class: 'btn btn-primary btn-lg' }, '🕹️ START PLAYING'),
-        h('a', { href: '/signup', 'data-link': true, class: 'btn btn-lg' }, '🛡️ CREATE PROFILE'),
+  const container = h('div', { class: 'page-home' },
+    // Hero Section with Cinematic Loop
+    h('section', { class: 'hero' },
+      h('video', { class: 'hero-video', autoplay: true, muted: true, loop: true, playsinline: true, src: '/Videos/139010-770938030_medium.mp4' }),
+      h('div', { class: 'container' },
+        h('h1', { class: 'hero-title reveal-text' }, 'NEXA'),
+        h('p', { class: 'reveal-text', style: 'font-size: 20px; color: var(--text-dim); max-width: 600px; margin: 0 auto 40px;' }, 
+          'Immerse yourself in the next generation of browser gaming. High performance, zero lag, total immersion.'),
+        h('div', { class: 'hero-btns reveal-text' },
+          h('a', { href: '/games', 'data-link': true, class: 'btn btn-primary' }, 'Explore Catalog'),
+          h('a', { href: '/tournaments', 'data-link': true, class: 'btn', style: 'margin-left: 20px;' }, 'Live Arena')
+        )
       )
     ),
 
-    // Scrolling Marquee for Last Player
-    h('div', { id: 'last-player-marquee', class: 'marquee-wrap' },
-      h('div', { class: 'marquee' }, 'WAITING FOR DATA...')
+    // Scrolling Stats / Marquee
+    h('div', { class: 'marquee-wrap' },
+      h('div', { class: 'marquee' }, 'OVER 1,000,000 GAMES PLAYED • LIVE TOURNAMENTS STARTING SOON • NEW AVATARS IN SHOP • JOIN THE NEXA REVOLUTION • '.repeat(5))
     ),
 
-    h('div', { style: 'margin-top: 60px; width: 100%;' },
-      h('h2', { style: 'text-align: center;' }, '🏆 TOP THREE LEGENDS'),
-      h('div', { id: 'top-players', class: 'top-players' }, 'LOADING CHAMPIONS...')
+    // Featured Games Grid
+    h('section', { class: 'section' },
+      h('div', { class: 'container' },
+        h('h2', { class: 'reveal-text', style: 'margin-bottom: 80px; text-align: center;' }, 'Trending Now'),
+        h('div', { id: 'featured-grid', class: 'grid' }, 'LOADING ARCADE...')
+      )
     ),
 
-    h('div', { style: 'margin-top: 80px; width: 100%;' },
-      h('h2', { style: 'margin-bottom: 30px;' }, 'FEATURED GAMES'),
-      h('div', { id: 'featured-grid', class: 'grid' }, 'LOADING ARCADE...')
-    ),
-
-    AdSlot('728x90', 'Arcade Sponsor')
+    // CTA Section
+    h('section', { class: 'section', style: 'background: var(--bg-deep);' },
+      h('div', { class: 'container', style: 'text-align: center;' },
+        h('h2', { class: 'reveal-text' }, 'Ready to level up?'),
+        h('p', { class: 'reveal-text', style: 'margin: 20px 0 40px; color: var(--text-dim);' }, 'Create an account to track your stats and join the global leaderboard.'),
+        h('a', { href: '/signup', 'data-link': true, class: 'btn reveal-text' }, 'Get Started Free')
+      )
+    )
   );
 
-  async function loadData() {
-    // Last Player Marquee
-    try {
-      const { last } = await api('/api/activity/last');
-      const marquee = container.querySelector('.marquee');
-      if (last) {
-        marquee.innerHTML = `*** LAST PLAYER: <span style="color:#fff">${last.username}</span> JUST PLAYED <span style="color:#fff">${last.game_id}</span> AND SCORED <span style="color:#fff">${last.score}</span>! *** `.repeat(10);
-      } else {
-        marquee.textContent = '*** WELCOME TO NEXA ARCADE! START PLAYING TO BECOME A LEGEND! *** '.repeat(10);
-      }
-    } catch {}
-
-    // Top 3 Players
-    try {
-      const { players } = await api('/api/leaderboards/global');
-      const topDiv = container.querySelector('#top-players');
-      topDiv.innerHTML = '';
-      (players || []).slice(0, 3).forEach((p, i) => {
-        topDiv.appendChild(h('div', { class: `player-rank rank-${i + 1}` },
-          h('div', { style: 'font-size: 24px; margin-bottom: 10px;' }, ['🥇', '🥈', '🥉'][i]),
-          h('div', { style: 'font-weight: 900; color: #fff;' }, p.username),
-          h('div', { style: 'font-size: 10px; color: var(--muted);' }, `LVL ${p.level}`),
-          h('div', { style: 'font-size: 12px; color: var(--accent);' }, `${p.xp} XP`)
-        ));
-      });
-    } catch {}
-
-    // Featured Games
+  async function loadGames() {
     try {
       const { featured } = await api('/api/catalog');
       const grid = container.querySelector('#featured-grid');
       grid.innerHTML = '';
+      
       const GAMES_DATA = await import('../games/index.js');
       const games = featured.map(id => GAMES_DATA.findGame(id)).filter(Boolean);
-      games.forEach(g => {
-        grid.appendChild(h('div', { class: 'game-card', onClick: () => route(`/games/${g.id}`) },
+      
+      // Video catalog for card previews
+      const videoRes = await fetch('/Videos/videos.json');
+      const videoList = await videoRes.json();
+
+      games.forEach((g, i) => {
+        const randomVideo = videoList[i % videoList.length];
+        grid.appendChild(h('div', { class: 'game-card reveal-card', onClick: () => route(`/games/${g.id}`) },
+          h('video', { class: 'card-video', muted: true, loop: true, playsinline: true, src: `/Videos/${randomVideo}`, onMouseEnter: e => e.target.play() }),
           h('div', { class: 'emoji' }, g.emoji),
           h('div', { class: 'card-info' },
             h('h3', {}, g.name),
@@ -72,10 +63,15 @@ export function HomePage() {
           )
         ));
       });
-    } catch {}
+      
+      // Refresh GSAP triggers after injection
+      ScrollTrigger.refresh();
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  queueMicrotask(loadData);
+  queueMicrotask(loadGames);
 
   return container;
 }

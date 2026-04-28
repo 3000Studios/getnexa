@@ -1,10 +1,9 @@
-// Tiny vanilla framework: hyperscript + router + shared state + toast
 import { mountBackground, setRoute as setBgRoute } from './bg-3d.js';
+import { sfx, attachSfx } from './sfx.js';
 
-export const state = {
-  user: null,
-};
+export const state = { user: null };
 
+// Hyperscript with auto-SFX attachment
 export function h(tag, attrs = {}, ...children) {
   if (typeof tag === 'function') return tag({ ...attrs, children: children.flat(Infinity) });
   const el = document.createElement(tag);
@@ -18,6 +17,12 @@ export function h(tag, attrs = {}, ...children) {
     else if (v === false || v === null || v === undefined) { /* skip */ }
     else el.setAttribute(k, v);
   }
+  
+  // Auto-attach SFX to interactive elements
+  if (tag === 'button' || tag === 'a' || (attrs && (attrs.class || '').includes('btn') || (attrs && (attrs.class || '').includes('game-card')))) {
+    attachSfx(el);
+  }
+
   for (const child of children.flat(Infinity)) {
     if (child === null || child === undefined || child === false) continue;
     if (child instanceof Node) el.appendChild(child);
@@ -26,10 +31,20 @@ export function h(tag, attrs = {}, ...children) {
   return el;
 }
 
-export function route(path, push = true) {
+export async function route(path, push = true) {
   if (push) history.pushState({}, '', path);
-  render(currentRoutes);
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  
+  // Page Warp Transition
+  const warp = document.getElementById('warp-overlay');
+  if (warp) {
+    sfx.transition();
+    await gsap.to(warp, { scaleY: 1, duration: 0.5, ease: 'expo.inOut', transformOrigin: 'bottom' });
+    render(currentRoutes);
+    window.scrollTo(0, 0);
+    await gsap.to(warp, { scaleY: 0, duration: 0.5, ease: 'expo.inOut', transformOrigin: 'top' });
+  } else {
+    render(currentRoutes);
+  }
 }
 
 let currentRoutes = [];
@@ -56,25 +71,49 @@ export function render(routes) {
   app.innerHTML = '';
   const url = new URL(location.href);
   const match = matchRoute(routes, url.pathname);
-  // Ensure animated background is mounted and updated per route
+
   try { mountBackground(); setBgRoute(url.pathname); } catch {}
 
   app.appendChild(Header());
   const main = document.createElement('main');
-  if (!match) {
-    main.appendChild(NotFound());
-  } else {
-    try {
-      main.appendChild(match.route.view({ params: match.params, query: url.searchParams }));
-    } catch (e) {
-      console.error(e);
-      main.appendChild(h('div', { class: 'container section' }, h('h2', {}, 'Something went wrong'), h('p', {}, String(e.message || e))));
-    }
-  }
+  if (!match) main.appendChild(NotFound());
+  else main.appendChild(match.route.view({ params: match.params, query: url.searchParams }));
   app.appendChild(main);
   app.appendChild(Footer());
+  
+  // Initialize Scroll Animations
+  initScrollAnimations();
   wireLinks(app);
-  ensureToastContainer();
+}
+
+function initScrollAnimations() {
+  gsap.registerPlugin(ScrollTrigger);
+  
+  // Reveal Text
+  gsap.utils.toArray('.reveal-text').forEach(el => {
+    gsap.to(el, {
+      opacity: 1, y: 0, filter: 'blur(0px)', duration: 1, ease: 'expo.out',
+      scrollTrigger: { trigger: el, start: 'top 90%' }
+    });
+  });
+
+  // Reveal Cards
+  gsap.utils.toArray('.reveal-card').forEach((el, i) => {
+    gsap.to(el, {
+      opacity: 1, scale: 1, y: 0, filter: 'blur(0px)', duration: 1.2, ease: 'expo.out', delay: i * 0.1,
+      scrollTrigger: { trigger: el, start: 'top 85%' }
+    });
+  });
+
+  // Sticky Header Logic
+  const header = document.querySelector('.site-header');
+  ScrollTrigger.create({
+    start: 'top -50',
+    onUpdate: (self) => {
+      if (self.direction === 1) header.classList.add('scrolled');
+      else if (self.scroll() < 50) header.classList.remove('scrolled');
+    }
+  });
 }
 
 function wireLinks(root) {
@@ -92,136 +131,33 @@ function Header() {
   const user = state.user;
   return h('header', { class: 'site-header' },
     h('div', { class: 'container nav' },
-      h('a', { href: '/', 'data-link': true, class: 'brand' },
-        h('div', { class: 'logo-mark' }, 'N'),
-        h('span', {}, 'Nexa Arcade')
-      ),
+      h('a', { href: '/', 'data-link': true, class: 'brand' }, 'NEXA'),
       h('nav', { class: 'nav-links' },
-        h('a', { href: '/games', 'data-link': true }, 'Games'),
-        h('a', { href: '/tournaments', 'data-link': true }, 'Tournaments'),
-        h('a', { href: '/leaderboards', 'data-link': true }, 'Leaderboards'),
-        h('a', { href: '/shop', 'data-link': true }, 'Shop'),
-        h('a', { href: '/creators', 'data-link': true }, 'Creators'),
+        h('a', { href: '/games', 'data-link': true }, 'Catalog'),
+        h('a', { href: '/tournaments', 'data-link': true }, 'Arena'),
+        h('a', { href: '/leaderboards', 'data-link': true }, 'Legends'),
+        h('a', { href: '/creators', 'data-link': true }, 'Studio'),
       ),
-      h('div', { class: 'nav-spacer' }),
       h('div', { class: 'nav-cta' },
         user
-          ? [
-              h('span', { class: 'pill' }, `🪙 ${user.coins}`),
-              h('a', { href: '/account', 'data-link': true, class: 'btn btn-sm' }, user.username),
-            ]
-          : [
-              h('a', { href: '/login', 'data-link': true, class: 'btn btn-sm btn-ghost' }, 'Log in'),
-              h('a', { href: '/signup', 'data-link': true, class: 'btn btn-sm btn-primary' }, 'Sign up'),
-            ]
+          ? h('a', { href: '/account', 'data-link': true, class: 'btn btn-sm' }, user.username)
+          : h('a', { href: '/login', 'data-link': true, class: 'btn btn-sm btn-primary' }, 'Join Now')
       )
     )
   );
 }
 
 function Footer() {
-  const year = new Date().getFullYear();
-  const videoRef = { el: null };
-
-  const loadRandomVideo = async () => {
-    try {
-      const res = await fetch('/Videos/videos.json');
-      const list = await res.json();
-      if (list.length) {
-        const video = list[Math.floor(Math.random() * list.length)];
-        if (videoRef.el) {
-          videoRef.el.src = `/Videos/${video}`;
-          videoRef.el.play().catch(() => {});
-        }
-      }
-    } catch {}
-  };
-
-  queueMicrotask(loadRandomVideo);
-
   return h('footer', { class: 'site-footer' },
-    h('div', { class: 'container' },
-      h('div', { class: 'footer-video-wrap' },
-        h('video', { ref: el => videoRef.el = el, autoplay: true, muted: true, loop: true, playsinline: true }),
-        h('div', { class: 'footer-video-label' }, 'LIVE STREAM')
-      ),
-      h('div', { class: 'footer-grid', style: 'margin-top: 40px;' },
-        h('div', { class: 'footer-col' },
-          h('div', { class: 'brand', style: 'margin-bottom: 12px;' },
-            h('div', { class: 'logo-mark' }, 'N'),
-            h('span', {}, 'Nexa Arcade')
-          ),
-          h('p', { style: 'margin:0; max-width: 360px; font-size: 8px;' },
-            'Nexa Arcade is a free online gaming hub — play browser games, compete on leaderboards, challenge friends, and collect rewards. Built and hosted on Cloudflare.'),
-        ),
-        h('div', { class: 'footer-col' },
-          h('h4', { style: 'font-size: 8px;' }, 'Play'),
-          h('a', { href: '/games', 'data-link': true, style: 'font-size: 8px;' }, 'All Games'),
-          h('a', { href: '/tournaments', 'data-link': true, style: 'font-size: 8px;' }, 'Tournaments'),
-        ),
-        h('div', { class: 'footer-col' },
-          h('h4', { style: 'font-size: 8px;' }, 'Legal'),
-          h('a', { href: '/privacy', 'data-link': true, style: 'font-size: 8px;' }, 'Privacy'),
-          h('a', { href: '/terms', 'data-link': true, style: 'font-size: 8px;' }, 'Terms'),
-        ),
-      ),
-      h('div', { class: 'footer-bottom', style: 'font-size: 8px;' },
-        h('div', {}, `© ${year} Nexa Arcade.`),
-        h('div', {}, 'Made on Cloudflare')
-      )
+    h('div', { class: 'container', style: 'text-align: center;' },
+      h('div', { class: 'brand', style: 'font-size: 40px; margin-bottom: 20px;' }, 'NEXA ARCADE'),
+      h('p', { style: 'color: var(--text-dim); font-size: 14px;' }, '© 2026 The Future of Gaming on Cloudflare.')
     )
   );
 }
 
 function NotFound() {
-  return h('div', { class: 'container section', style: 'text-align:center; padding: 80px 0;' },
-    h('h1', {}, '404'),
-    h('p', {}, 'The page you are looking for was not found.'),
-    h('a', { href: '/', 'data-link': true, class: 'btn btn-primary' }, 'Back to home')
-  );
-}
-
-function ensureToastContainer() {
-  if (document.getElementById('toast-container')) return;
-  const c = document.createElement('div');
-  c.id = 'toast-container';
-  c.className = 'toast-container';
-  document.body.appendChild(c);
-}
-
-export function toast(message, type = '') {
-  ensureToastContainer();
-  const c = document.getElementById('toast-container');
-  const t = document.createElement('div');
-  t.className = 'toast ' + type;
-  t.textContent = message;
-  c.appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(10px)'; }, 3000);
-  setTimeout(() => t.remove(), 3500);
-}
-
-// Google AdSense responsive ad unit (ca-pub-5800977493749262).
-// When AdSense approves the site, create ad units and pass slot IDs here,
-// OR just enable Auto Ads in the AdSense dashboard — the script in <head>
-// will handle placement automatically. Until a slotId is provided, we keep
-// a reserved, styled container so the layout doesn't jump.
-export function AdSlot(size = '728x90', label = 'Advertisement', slotId = '') {
-  const wrap = h('div', { class: 'ad-slot', 'aria-label': label });
-  if (slotId) {
-    const ins = document.createElement('ins');
-    ins.className = 'adsbygoogle';
-    ins.style.display = 'block';
-    ins.style.width = '100%';
-    ins.setAttribute('data-ad-client', 'ca-pub-5800977493749262');
-    ins.setAttribute('data-ad-slot', slotId);
-    ins.setAttribute('data-ad-format', 'auto');
-    ins.setAttribute('data-full-width-responsive', 'true');
-    wrap.appendChild(ins);
-    queueMicrotask(() => { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch {} });
-  } else {
-    wrap.appendChild(h('small', {}, `${label} (${size})`));
-  }
-  return wrap;
+  return h('div', { class: 'container section' }, h('h1', {}, '404'), h('a', { href: '/', 'data-link': true, class: 'btn' }, 'Back Home'));
 }
 
 export async function api(path, opts = {}) {
@@ -231,8 +167,7 @@ export async function api(path, opts = {}) {
     body: opts.body ? JSON.stringify(opts.body) : undefined,
     credentials: 'include',
   });
-  let json = {};
-  try { json = await res.json(); } catch {}
+  let json = {}; try { json = await res.json(); } catch {}
   if (!res.ok) throw new Error(json.error || `Request failed (${res.status})`);
   return json;
 }
