@@ -229,3 +229,6 @@ export async function api(path, opts = {}) {
   if (!res.ok) throw new Error(json.error || `Request failed (${res.status})`);
   return json;
 }
+w i n d o w . a d d E v e n t L i s t e n e r ( ' m o u s e d o w n ' ,   ( )   = >   s f x . s t a r t A m b i e n t ( ) ,   {   o n c e :   t r u e   } ) ;  
+ w i n d o w . a d d E v e n t L i s t e n e r ( ' k e y d o w n ' ,   ( )   = >   s f x . s t a r t A m b i e n t ( ) ,   {   o n c e :   t r u e   } ) ;  
+ 

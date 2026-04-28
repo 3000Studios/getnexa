@@ -1,5 +1,6 @@
 // Advanced Web Audio UI Sound System
 const ctx = new (window.AudioContext || window.webkitAudioContext)();
+let ambientOsc = null;
 
 function playTone(freq, type, duration, volume = 0.1) {
   if (ctx.state === 'suspended') ctx.resume();
@@ -21,14 +22,14 @@ function playTone(freq, type, duration, volume = 0.1) {
 }
 
 export const sfx = {
-  hover: () => playTone(880, 'sine', 0.1, 0.05),
+  hover: () => playTone(120, 'sine', 0.2, 0.05), // Low "thud"
   click: () => playTone(440, 'triangle', 0.15, 0.1),
   transition: () => {
-    const dur = 0.5;
+    const dur = 0.8;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.frequency.setValueAtTime(100, ctx.currentTime);
-    osc.frequency.linearRampToValueAtTime(1000, ctx.currentTime + dur);
+    osc.frequency.setValueAtTime(40, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + dur);
     gain.gain.setValueAtTime(0.1, ctx.currentTime);
     gain.gain.linearRampToValueAtTime(0, ctx.currentTime + dur);
     osc.connect(gain);
@@ -36,10 +37,26 @@ export const sfx = {
     osc.start();
     osc.stop(ctx.currentTime + dur);
   },
-  glitch: () => {
-    for (let i = 0; i < 5; i++) {
-      setTimeout(() => playTone(Math.random() * 1000 + 500, 'square', 0.05, 0.02), i * 30);
-    }
+  startAmbient: () => {
+    if (ambientOsc) return;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.02, ctx.currentTime);
+    
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 0.1;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 5;
+    lfo.connect(lfoGain);
+    
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = 60; // Deep hum
+    lfoGain.connect(osc.frequency);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    ambientOsc = osc;
   }
 };
 

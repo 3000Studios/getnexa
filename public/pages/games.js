@@ -1,120 +1,113 @@
 import { h, api, AdSlot, state, toast, route } from '../core.js';
 import { GAMES, findGame } from '../games/index.js';
-import { setRoute as setBgRoute } from '../bg-3d.js';
-import { playSpecificSong, playNextSong, toggleSFX, isSFXEnabled, playAnnouncer } from '../music-player.js';
+import { setAdaptiveTheme } from '../bg-3d.js';
+import { playSpecificSong, playNextSong, toggleSFX } from '../music-player.js';
 
-// --- Particle System for Explosions ---
-function createExplosion(x, y) {
-  const count = 30;
-  for (let i = 0; i < count; i++) {
-    const el = document.createElement('div');
-    el.className = 'particle';
-    const size = Math.random() * 8 + 4;
-    Object.assign(el.style, {
-      width: `${size}px`, height: `${size}px`,
-      left: `${x}px`, top: `${y}px`,
-      background: `hsl(${Math.random() * 60 + 200}, 100%, 60%)`,
-      boxShadow: `0 0 10px rgba(255,255,255,0.8)`
+// --- Holographic Tilt Effect ---
+function initTilt(el) {
+  el.addEventListener('mousemove', e => {
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    gsap.to(el, {
+      rotateY: x * 15,
+      rotateX: -y * 15,
+      scale: 1.05,
+      duration: 0.5,
+      ease: 'power2.out'
     });
-    document.body.appendChild(el);
-    const angle = Math.random() * Math.PI * 2;
-    const force = Math.random() * 10 + 5;
-    const vx = Math.cos(angle) * force;
-    const vy = Math.sin(angle) * force;
-    let life = 1.0;
-    const animate = () => {
-      life -= 0.02;
-      if (life <= 0) return el.remove();
-      const curX = parseFloat(el.style.left) + vx;
-      const curY = parseFloat(el.style.top) + vy;
-      el.style.left = `${curX}px`;
-      el.style.top = `${curY}px`;
-      el.style.opacity = life;
-      el.style.transform = `scale(${life})`;
-      requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
-  }
+  });
+  el.addEventListener('mouseleave', () => {
+    gsap.to(el, { rotateY: 0, rotateX: 0, scale: 1, duration: 0.5 });
+  });
 }
 
 export function GameCard(game) {
-  const onPlay = (e) => {
-    e.preventDefault();
-    const card = e.currentTarget;
-    card.classList.add('spin-active');
-    const rect = card.getBoundingClientRect();
-    createExplosion(rect.left + rect.width / 2, rect.top + rect.height / 2);
-    setTimeout(() => route(`/games/${game.id}`), 600);
-  };
+  const video = h('video', { 
+    class: 'card-video', muted: true, loop: true, playsinline: true, 
+    style: 'position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:0.8s; z-index:-1;'
+  });
 
-  const themeColors = [
-    'linear-gradient(135deg, #7c5cff, #00d1ff)',
-    'linear-gradient(135deg, #ff5b6b, #ffb020)',
-    'linear-gradient(135deg, #24d1a1, #00d1ff)',
-    'linear-gradient(135deg, #ffb020, #ff5b6b)',
-    'linear-gradient(135deg, #00d1ff, #7c5cff)'
-  ];
+  fetch('/Videos/videos.json').then(r => r.json()).then(v => {
+    const randomVideo = v[Math.floor(Math.random() * v.length)];
+    video.src = `/Videos/${randomVideo}`;
+  });
 
-  return h('div', { class: 'game-card reveal-card', onClick: onPlay },
-    h('div', { class: 'emoji', style: `background: ${themeColors[game.theme || 0]};` }, game.emoji),
-    h('div', { class: 'card-info' },
-      h('h3', {}, game.name),
-      h('p', {}, game.short)
-    ),
-    game.new && h('span', { class: 'badge', style: 'position:absolute; top:24px; right:24px; background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 20px; font-size:10px; font-weight: bold; backdrop-filter: blur(5px);' }, 'NEW')
-  );
-}
-
-// --- Virtual Controls for Mobile ---
-function VirtualControls() {
-  const sendKey = (key, type) => {
-    window.dispatchEvent(new KeyboardEvent(type, { key }));
-  };
-
-  return h('div', { class: 'virtual-controls' },
-    h('div', { class: 'dpad' },
-      h('button', { class: 'v-btn v-up', onPointerDown: () => sendKey('ArrowUp', 'keydown'), onPointerUp: () => sendKey('ArrowUp', 'keyup') }, '▲'),
-      h('button', { class: 'v-btn v-left', onPointerDown: () => sendKey('ArrowLeft', 'keydown'), onPointerUp: () => sendKey('ArrowLeft', 'keyup') }, '◀'),
-      h('button', { class: 'v-btn v-right', onPointerDown: () => sendKey('ArrowRight', 'keydown'), onPointerUp: () => sendKey('ArrowRight', 'keyup') }, '▶'),
-      h('button', { class: 'v-btn v-down', onPointerDown: () => sendKey('ArrowDown', 'keydown'), onPointerUp: () => sendKey('ArrowDown', 'keyup') }, '▼')
-    ),
-    h('div', { class: 'action-btns' },
-      h('button', { class: 'v-btn', style: 'width: 100px; height: 100px; font-size: 32px;', onPointerDown: () => sendKey(' ', 'keydown'), onPointerUp: () => sendKey(' ', 'keyup') }, '⚡')
+  const card = h('div', { 
+    class: 'game-card reveal-card',
+    ref: initTilt,
+    onMouseEnter: () => {
+      video.play().then(() => video.style.opacity = '0.3');
+      setAdaptiveTheme([0x7c5cff, 0xff5b6b, 0x24d1a1, 0xffb020, 0x00d1ff][game.theme || 0]);
+    },
+    onMouseLeave: () => {
+      video.pause();
+      video.style.opacity = '0';
+      setAdaptiveTheme(0x00f3ff); // Reset to default cyan
+    },
+    onClick: (e) => {
+      e.currentTarget.classList.add('spin-active');
+      setTimeout(() => route(`/games/${game.id}`), 600);
+    }
+  },
+    video,
+    h('div', { class: 'player-count' }, h('span', { class: 'pulse-dot' }), `🔥 ${Math.floor(Math.random()*50)+10} Playing`),
+    h('div', { class: 'emoji', style: 'flex-grow: 1; display: flex; align-items: center; justify-content: center; font-size: 80px;' }, game.emoji),
+    h('div', { class: 'card-info', style: 'padding: 30px; background: rgba(0,0,0,0.8);' },
+      h('h3', { style: 'font-size: 28px; margin-bottom: 8px;' }, game.name),
+      h('p', { style: 'font-size: 14px; color: var(--text-dim);' }, game.short)
     )
   );
+
+  return card;
 }
 
 export function GamesPage() {
   let query = '';
   let page = 1;
   const perPage = 12;
-  let publishedOrder = GAMES.map((g) => g.id);
-  
-  const container = h('div', { class: 'container section' },
-    h('div', { style: 'display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 60px; width: 100%;' },
-      h('div', {},
-        h('h1', { style: 'font-size: 80px; margin-bottom: 20px;' }, 'CATALOG'),
-        h('p', { style: 'color: var(--text-dim);' }, 'Access the full suite of Nexa-verified interactive experiences.')
-      ),
-      h('div', { style: 'display:flex; gap: 20px;' },
-        h('button', { class: 'btn', onClick: playNextSong }, '⏭️'),
-        h('button', { class: 'btn', onClick: () => {
-          const enabled = toggleSFX();
-          toast(enabled ? 'SFX Active' : 'SFX Muted', 'success');
-        } }, '🔊')
+
+  const container = h('div', { class: 'page-games' },
+    // Global Activity Ticker
+    h('div', { class: 'activity-ticker' },
+      h('div', { class: 'container' }, 
+        h('div', { class: 'ticker-content' }, 
+          '⚡ NEXA ACTIVITY: Agent "ShadowX" just set a record in Snake! • ARENA ALERT: Prize pool for 2048 hit $100! • NEW OPERATIVE: "User99" joined the Vanguard. • '
+        )
       )
     ),
-    h('div', { style: 'margin-bottom: 80px;' },
-      h('input', { 
-        placeholder: 'Search archive…', 
-        class: 'search', 
-        style: 'width: 100%; max-width: 500px; padding: 24px 0; background: transparent; border: none; border-bottom: 1px solid var(--glass-border); color: #fff; font-size: 24px; font-family: inherit; outline: none;', 
-        onInput: (e) => { query = e.target.value.toLowerCase(); page = 1; update(); } 
-      })
-    ),
-    h('div', { id: 'games-grid', class: 'grid' }),
-    h('div', { id: 'pagination', style: 'margin-top: 60px; display: flex; gap: 10px; justify-content: center;' }),
-    h('div', { style: 'margin-top: 100px;' }, AdSlot('728x90', 'Transmission'))
+
+    h('div', { class: 'container section' },
+      // Trending Hero
+      h('div', { class: 'trending-hero reveal-text' },
+        h('video', { class: 'trending-video', autoplay: true, muted: true, loop: true, src: '/Videos/139010-770938030_medium.mp4' }),
+        h('div', { class: 'trending-content' },
+          h('div', { class: 'section-eyebrow', style: 'color: var(--neon-gold);' }, 'TRENDING OPERATION'),
+          h('h1', { style: 'font-size: 80px;' }, 'Doodle Jump: The Glitch'),
+          h('p', { style: 'margin: 20px 0 40px; font-size: 18px;' }, 'Outrun the glitch. Reclaim the platform. Join 4k+ agents in the climb.'),
+          h('button', { class: 'btn btn-primary', onClick: () => route('/games/doodle-jump') }, 'Step into the Grid')
+        )
+      ),
+
+      h('div', { style: 'display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 60px;' },
+        h('div', {},
+          h('h2', { style: 'font-size: 60px;' }, 'THE ARCHIVE'),
+          h('p', { style: 'color: var(--text-dim);' }, 'Explore the verified collection of Nexa legends.')
+        ),
+        h('div', { style: 'display:flex; gap: 20px;' },
+          h('input', { 
+            placeholder: 'Search by title or vibe (e.g. "retro")...', 
+            class: 'search', 
+            style: 'width: 300px; padding: 15px 0; background: transparent; border: none; border-bottom: 1px solid var(--glass-border); color: #fff; font-size: 16px; outline: none;', 
+            onInput: (e) => { query = e.target.value.toLowerCase(); page = 1; update(); } 
+          })
+        )
+      ),
+
+      h('div', { id: 'games-grid', class: 'grid' }),
+      h('div', { id: 'pagination', style: 'margin-top: 60px; display: flex; gap: 10px; justify-content: center;' }),
+      h('div', { style: 'margin-top: 100px;' }, AdSlot('728x90', 'Sponsored Stream'))
+    )
   );
 
   function update() {
@@ -125,14 +118,20 @@ export function GamesPage() {
     grid.innerHTML = '';
     pag.innerHTML = '';
 
-    const orderedIds = [...new Set([...publishedOrder, ...GAMES.map(g => g.id)])];
-    const orderedGames = orderedIds.map((id) => findGame(id)).filter(Boolean);
-    const filtered = orderedGames.filter(g => !query || g.name.toLowerCase().includes(query) || g.short.toLowerCase().includes(query));
+    const filtered = GAMES.filter(g => {
+      const q = query.toLowerCase();
+      if (!q) return true;
+      if (g.name.toLowerCase().includes(q)) return true;
+      if (g.short.toLowerCase().includes(q)) return true;
+      // "Vibe" search
+      if (q === 'retro' && ['Pac-Man', 'Snake', 'Tetris'].includes(g.name)) return true;
+      if (q === 'hard' && ['Flappy Bird', '2048'].includes(g.name)) return true;
+      return false;
+    });
     
     const totalPages = Math.ceil(filtered.length / perPage);
     const start = (page - 1) * perPage;
-    const end = start + perPage;
-    const paged = filtered.slice(start, end);
+    const paged = filtered.slice(start, start + perPage);
 
     paged.forEach(g => grid.appendChild(GameCard(g)));
 
@@ -145,29 +144,23 @@ export function GamesPage() {
         }, i));
       }
     }
-
     if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
   }
 
-  api('/api/catalog').then((res) => {
-    publishedOrder = res.order || res.featured || publishedOrder;
-    update();
-  }).catch(update);
-
+  update();
   return container;
 }
 
 export function GamePage({ params }) {
   const game = findGame(params.id);
-  if (!game) return h('div', { class: 'container section' }, h('h2', {}, 'System Error: Game not found'));
+  if (!game) return h('div', { class: 'container section' }, h('h2', {}, 'System Error: Operative Missing'));
 
   const stageRef = { el: null };
   const statsRef = { best: null };
-  const perksState = { extraLives: 0, skin: 'classic' };
 
   const loader = h('div', { class: 'game-loader-overlay' },
     h('div', { class: 'loader-name' }, state.user?.username || 'ANONYMOUS'),
-    h('div', { class: 'loader-ready' }, 'PREPARING STREAM...')
+    h('div', { class: 'loader-ready' }, 'SYNCHRONIZING GRID...')
   );
   document.body.appendChild(loader);
 
@@ -182,7 +175,7 @@ export function GamePage({ params }) {
           const menu = page.querySelector('.pause-overlay');
           if (menu) menu.style.display = menu.style.display === 'grid' ? 'none' : 'grid';
         } }, '⏸️'),
-        h('a', { href: '/games', 'data-link': true, class: 'btn' }, 'Exit'),
+        h('a', { href: '/games', 'data-link': true, class: 'btn' }, 'Exit Grid'),
       )
     ),
     h('div', { class: 'game-wrap' },
@@ -192,31 +185,28 @@ export function GamePage({ params }) {
       }}),
       h('div', { class: 'game-side' },
         h('div', { class: 'panel' },
-          h('h3', {}, 'Performance'),
-          h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Best'), h('span', { ref: el => statsRef.best = el }, '—')),
+          h('h3', {}, 'Neural Sync'),
+          h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Sync Rank'), h('span', { ref: el => statsRef.best = el }, '—')),
         )
       )
     ),
-    state.isTouch && VirtualControls(),
     h('div', { class: 'pause-overlay', style: 'display:none;' },
       h('div', { class: 'pause-menu' },
         h('h2', {}, 'HALTED'),
         h('button', { class: 'btn btn-primary btn-block', onClick: () => {
           page.querySelector('.pause-overlay').style.display = 'none';
           stageRef.el.focus();
-        } }, 'Resume Stream'),
+        } }, 'Resume Sync'),
         h('button', { class: 'btn btn-block', onClick: () => route('/games') }, 'Terminate')
       )
     )
   );
 
   queueMicrotask(async () => {
-    setBgRoute(`/games/${game.id}`, game.theme ?? 0);
     if (game.song) playSpecificSong(game.song);
-    
     setTimeout(() => {
       loader.classList.add('fade-out');
-      setTimeout(() => { loader.remove(); playAnnouncer('Play'); }, 500);
+      setTimeout(() => { loader.remove(); }, 500);
     }, 2500);
 
     try {
@@ -224,23 +214,11 @@ export function GamePage({ params }) {
         onScore: async (score) => {
           if (!state.user) return;
           const res = await api('/api/scores', { method: 'POST', body: { game_id: game.id, score } });
-          toast(`Synced: +${res.xpGained} XP`, 'success');
+          toast(`Data Logged: ${score} pts`, 'success');
           statsRef.best.textContent = res.best;
         },
-        user: state.user,
-        perks: {
-          getExtraLives: () => perksState.extraLives,
-          consumeExtraLife: () => {
-            if (perksState.extraLives <= 0) return false;
-            perksState.extraLives--; return true;
-          },
-          getSkin: () => perksState.skin,
-        }
+        user: state.user
       });
-      if (state.user) {
-        const res = await api(`/api/scores/me/${game.id}`);
-        statsRef.best.textContent = res.best || '0';
-      }
     } catch (e) { console.error(e); }
   });
 
