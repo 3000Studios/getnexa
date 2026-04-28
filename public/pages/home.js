@@ -3,9 +3,9 @@ import { h, api, AdSlot, state, route } from '../core.js';
 export function HomePage() {
   const container = h('div', { class: 'container section' },
     h('div', { class: 'hero-content' },
-      h('h1', { style: 'font-size: 56px; margin-bottom: 10px;' }, 'WELCOME TO NEXA'),
-      h('h2', { style: 'color: var(--accent); margin-bottom: 40px;' }, 'THE ULTIMATE 8-BIT ARCADE'),
-      h('div', { style: 'display:flex; gap: 20px; justify-content: center; flex-wrap: wrap;' },
+      h('h1', {}, 'WELCOME TO NEXA'),
+      h('h2', { class: 'text-accent' }, 'THE NEXT GENERATION ARCADE'),
+      h('div', { style: 'display:flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 40px;' },
         h('a', { href: '/games', 'data-link': true, class: 'btn btn-primary btn-lg' }, '🕹️ START PLAYING'),
         h('a', { href: '/signup', 'data-link': true, class: 'btn btn-lg' }, '🛡️ CREATE PROFILE'),
       )
@@ -66,9 +66,9 @@ export function HomePage() {
       games.forEach(g => {
         grid.appendChild(h('div', { class: 'game-card', onClick: () => route(`/games/${g.id}`) },
           h('div', { class: 'emoji' }, g.emoji),
-          h('div', { style: 'background: rgba(0,0,0,0.8); padding: 10px; border-top: 2px solid #fff;' },
-            h('h3', { style: 'margin:0; font-size:12px;' }, g.name),
-            h('p', { style: 'margin:5px 0 0; font-size:9px; color: var(--muted);' }, g.short)
+          h('div', { class: 'card-info' },
+            h('h3', {}, g.name),
+            h('p', {}, g.short)
           )
         ));
       });

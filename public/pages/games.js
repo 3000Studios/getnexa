@@ -60,11 +60,11 @@ export function GameCard(game) {
 
   return h('div', { class: 'game-card', onClick: onPlay },
     h('div', { class: 'emoji' }, game.emoji),
-    h('div', { class: 'game-card-info' },
+    h('div', { class: 'card-info' },
       h('h3', {}, game.name),
-      h('p', { class: 'text-muted', style: 'font-size: 13px; margin: 0;' }, game.short)
+      h('p', {}, game.short)
     ),
-    game.new && h('span', { class: 'badge badge-new', style: 'position:absolute; top:12px; right:12px;' }, 'New')
+    game.new && h('span', { class: 'badge', style: 'position:absolute; top:24px; right:24px; font-size:10px; opacity:0.6;' }, 'New')
   );
 }
 
