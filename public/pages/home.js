@@ -58,7 +58,10 @@ export function HomePage() {
 
         games.forEach((g, i) => {
           const randomVideo = videoList[i % videoList.length];
-          const card = h('div', { class: 'game-card reveal-card', onClick: () => route(`/games/${g.id}`) },
+          const card = h('div', { class: 'game-card reveal-card', onClick: (e) => {
+            e.currentTarget.classList.add('spin-active');
+            setTimeout(() => route(`/games/${g.id}`), 600);
+          } },
             h('video', { class: 'card-video', muted: true, loop: true, playsinline: true, src: `/Videos/${randomVideo}`, onMouseEnter: e => e.target.play() }),
             h('div', { class: 'emoji', style: `background: ${['#7c5cff', '#ff5b6b', '#24d1a1', '#ffb020', '#00d1ff'][g.theme || 0]};` }, g.emoji),
             h('div', { class: 'card-info' },

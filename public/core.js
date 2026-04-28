@@ -39,13 +39,15 @@ export async function route(path, push = true) {
   if (warp && typeof gsap !== 'undefined') {
     try {
       sfx.transition();
-      await gsap.to(warp, { scaleY: 1, backdropFilter: 'blur(30px)', duration: 0.6, ease: 'expo.inOut', transformOrigin: 'bottom' });
+      gsap.set(warp, { visibility: 'visible' });
+      await gsap.to(warp, { scale: 1.5, rotate: 0, opacity: 1, duration: 0.8, ease: 'expo.inOut' });
       render(currentRoutes);
       window.scrollTo(0, 0);
-      await gsap.to(warp, { scaleY: 0, backdropFilter: 'blur(0px)', duration: 0.6, ease: 'expo.inOut', transformOrigin: 'top' });
+      await gsap.to(warp, { scale: 0, rotate: 180, opacity: 0, duration: 0.8, ease: 'expo.inOut' });
+      gsap.set(warp, { visibility: 'hidden' });
     } catch (e) {
       console.error("Transition Error:", e);
-      gsap.set(warp, { scaleY: 0, backdropFilter: 'blur(0px)' });
+      gsap.set(warp, { scale: 0, opacity: 0, visibility: 'hidden' });
       render(currentRoutes);
     }
   } else {

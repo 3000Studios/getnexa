@@ -40,9 +40,11 @@ function createExplosion(x, y) {
 export function GameCard(game) {
   const onPlay = (e) => {
     e.preventDefault();
-    const rect = e.currentTarget.getBoundingClientRect();
+    const card = e.currentTarget;
+    card.classList.add('spin-active');
+    const rect = card.getBoundingClientRect();
     createExplosion(rect.left + rect.width / 2, rect.top + rect.height / 2);
-    setTimeout(() => route(`/games/${game.id}`), 400);
+    setTimeout(() => route(`/games/${game.id}`), 600);
   };
 
   const themeColors = [

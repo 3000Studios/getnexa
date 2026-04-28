@@ -104,8 +104,9 @@ body {
   .grid { gap: 40px; }
 }
 .game-card {
-  position: relative; border-radius: var(--radius-lg); background: var(--glass);
-  border: 1px solid var(--glass-border); overflow: hidden;
+  position: relative; border-radius: var(--radius-lg); 
+  background: #0a0a0a; /* Solid Opaque Background */
+  border: 1px solid rgba(255,255,255,0.15); overflow: hidden;
   transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex; flex-direction: column; aspect-ratio: 1/1.2;
 }
@@ -168,15 +169,24 @@ body {
 }
 .btn-primary:hover { background: var(--neon-cyan); box-shadow: 0 0 30px var(--neon-cyan); }
 
-/* ─── Page Warp Transition (3D Transparent Design) ─── */
+/* ─── Page Warp Transition (3D Spinning Design) ─── */
 #warp-overlay {
   position: fixed; inset: 0; z-index: 99999; pointer-events: none;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(0px);
-  transform: scaleY(0);
-  transform-origin: top;
-  border-bottom: 1px solid var(--neon-cyan);
-  box-shadow: 0 0 100px rgba(0, 243, 255, 0.2);
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0) rotate(-180deg);
+}
+
+.spin-active {
+  animation: spinClick 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes spinClick {
+  0% { transform: scale(1) rotate(0); }
+  50% { transform: scale(0.8) rotate(180deg); }
+  100% { transform: scale(0) rotate(360deg); }
 }
 
 /* ─── Footer ────────────────────────────────────────── */
