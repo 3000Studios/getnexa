@@ -38,10 +38,10 @@ export async function route(path, push = true) {
   const warp = document.getElementById('warp-overlay');
   if (warp && typeof gsap !== 'undefined') {
     sfx.transition();
-    await gsap.to(warp, { scaleY: 1, duration: 0.5, ease: 'linear', transformOrigin: 'bottom' });
+    await gsap.to(warp, { scaleY: 1, backdropFilter: 'blur(30px)', duration: 0.6, ease: 'expo.inOut', transformOrigin: 'bottom' });
     render(currentRoutes);
     window.scrollTo(0, 0);
-    await gsap.to(warp, { scaleY: 0, duration: 0.5, ease: 'linear', transformOrigin: 'top' });
+    await gsap.to(warp, { scaleY: 0, backdropFilter: 'blur(0px)', duration: 0.6, ease: 'expo.inOut', transformOrigin: 'top' });
   } else {
     render(currentRoutes);
   }

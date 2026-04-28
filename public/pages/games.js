@@ -13,7 +13,7 @@ function createExplosion(x, y) {
     Object.assign(el.style, {
       width: `${size}px`, height: `${size}px`,
       left: `${x}px`, top: `${y}px`,
-      background: `hsl(${Math.random() * 60 + 200}, 100%, 60%)`, // Sparks
+      background: `hsl(${Math.random() * 60 + 200}, 100%, 60%)`,
       boxShadow: `0 0 10px rgba(255,255,255,0.8)`
     });
     document.body.appendChild(el);
@@ -46,16 +46,15 @@ export function GameCard(game) {
   };
 
   const themeColors = [
-    'linear-gradient(135deg, #7c5cff, #00d1ff)', // Theme 0
-    'linear-gradient(135deg, #ff5b6b, #ffb020)', // Theme 1
-    'linear-gradient(135deg, #24d1a1, #00d1ff)', // Theme 2
-    'linear-gradient(135deg, #ffb020, #ff5b6b)', // Theme 3
-    'linear-gradient(135deg, #00d1ff, #7c5cff)'  // Theme 4
+    'linear-gradient(135deg, #7c5cff, #00d1ff)',
+    'linear-gradient(135deg, #ff5b6b, #ffb020)',
+    'linear-gradient(135deg, #24d1a1, #00d1ff)',
+    'linear-gradient(135deg, #ffb020, #ff5b6b)',
+    'linear-gradient(135deg, #00d1ff, #7c5cff)'
   ];
-  const cardGradient = themeColors[game.theme || 0];
 
-  return h('div', { class: 'game-card', onClick: onPlay },
-    h('div', { class: 'emoji', style: `background: ${cardGradient};` }, game.emoji),
+  return h('div', { class: 'game-card reveal-card', onClick: onPlay },
+    h('div', { class: 'emoji', style: `background: ${themeColors[game.theme || 0]};` }, game.emoji),
     h('div', { class: 'card-info' },
       h('h3', {}, game.name),
       h('p', {}, game.short)
@@ -69,192 +68,134 @@ export function GamesPage() {
   let publishedOrder = GAMES.map((g) => g.id);
   
   const container = h('div', { class: 'container section' },
-    h('div', { style: 'display:flex; justify-content: space-between; align-items: center; margin-bottom: 30px; width: 100%;' },
-      h('div', { style: 'text-align: left;' },
-        h('h1', { class: 'game-header' }, 'Arcade Catalog'),
-        h('p', { style: 'color: var(--text-dim);' }, 'Explore our entire collection of high-performance neon arcade games.')
+    h('div', { style: 'display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 60px; width: 100%;' },
+      h('div', {},
+        h('h1', { class: 'reveal-text', style: 'font-size: 80px; margin-bottom: 20px;' }, 'CATALOG'),
+        h('p', { class: 'reveal-text', style: 'color: var(--text-dim);' }, 'Access the full suite of Nexa-verified interactive experiences.')
       ),
-      h('div', { class: 'music-mini-controls' },
-        h('button', { class: 'btn', style: 'margin-right: 10px;', onClick: playNextSong, title: 'Next Song' }, '⏭️'),
-        h('button', { class: 'btn', onClick: (e) => {
+      h('div', { class: 'controls reveal-text', style: 'display:flex; gap: 20px;' },
+        h('button', { class: 'btn', onClick: playNextSong }, '⏭️'),
+        h('button', { class: 'btn', onClick: () => {
           const enabled = toggleSFX();
-          e.target.textContent = enabled ? '🔊' : '🔇';
-          toast(enabled ? 'Sound Effects Enabled' : 'Sound Effects Muted', 'success');
+          toast(enabled ? 'SFX Active' : 'SFX Muted', 'success');
         } }, '🔊')
       )
     ),
-    h('div', { style: 'margin-bottom: 60px; width: 100%; display: flex; justify-content: center;' },
+    h('div', { class: 'reveal-text', style: 'margin-bottom: 80px;' },
       h('input', { 
-        placeholder: 'Search our collection of 40+ games…', 
+        placeholder: 'Search archive…', 
         class: 'search', 
-        style: 'max-width: 600px; width: 100%; padding: 20px 40px; border-radius: 99px; background: var(--glass); border: 1px solid var(--glass-border); color: var(--text); font-family: inherit; font-size: 18px;', 
+        style: 'width: 100%; max-width: 500px; padding: 24px 0; background: transparent; border: none; border-bottom: 1px solid var(--glass-border); color: #fff; font-size: 24px; font-family: inherit; outline: none;', 
         onInput: (e) => { query = e.target.value.toLowerCase(); update(); } 
       })
     ),
     h('div', { id: 'games-grid', class: 'grid' }, ...GAMES.map(GameCard)),
-    AdSlot('728x90', 'Sponsored')
+    h('div', { style: 'margin-top: 100px;' }, AdSlot('728x90', 'Transmission'))
   );
 
   function update() {
     const grid = container.querySelector('#games-grid');
     if (!grid) return;
     grid.innerHTML = '';
-    
-    // Combine published order with any remaining games to ensure everything is visible
     const orderedIds = [...new Set([...publishedOrder, ...GAMES.map(g => g.id)])];
     const orderedGames = orderedIds.map((id) => findGame(id)).filter(Boolean);
-    
     const filtered = orderedGames.filter(g => !query || g.name.toLowerCase().includes(query) || g.short.toLowerCase().includes(query));
-    
-    filtered.forEach(g => {
-      const card = GameCard(g);
-      card.classList.add('reveal-card');
-      grid.appendChild(card);
-    });
-    
-    // Refresh ScrollTrigger after grid update
+    filtered.forEach(g => grid.appendChild(GameCard(g)));
     if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
   }
 
-  api('/api/catalog')
-    .then((res) => {
-      const order = res.order || res.featured || [];
-      if (Array.isArray(order) && order.length) {
-        publishedOrder = order;
-        update();
-      }
-    })
-    .catch(() => {
-      // Fallback to default grid if API fails
-      update();
-    });
+  api('/api/catalog').then((res) => {
+    publishedOrder = res.order || res.featured || publishedOrder;
+    update();
+  }).catch(update);
 
   return container;
 }
 
 export function GamePage({ params }) {
   const game = findGame(params.id);
-  if (!game) return h('div', { class: 'container section' }, h('h2', {}, 'Game not found'));
+  if (!game) return h('div', { class: 'container section' }, h('h2', {}, 'System Error: Game not found'));
 
   const stageRef = { el: null };
   const statsRef = { best: null };
-  const perksRef = { lives: null, skin: null };
   const perksState = { extraLives: 0, skin: 'classic' };
 
-  // --- Loading Screen Logic ---
   const loader = h('div', { class: 'game-loader-overlay' },
-    h('div', { class: 'loader-name' }, state.user?.username || 'GUEST'),
-    h('div', { class: 'loader-ready' }, 'GET READY...')
+    h('div', { class: 'loader-name' }, state.user?.username || 'ANONYMOUS'),
+    h('div', { class: 'loader-ready' }, 'PREPARING STREAM...')
   );
   document.body.appendChild(loader);
 
-  async function refreshBest() {
-    if (!state.user) { statsRef.best.textContent = '—'; return; }
-    try {
-      const res = await api(`/api/scores/me/${game.id}`);
-      statsRef.best.textContent = String(res.best || 0);
-    } catch { statsRef.best.textContent = '0'; }
-  }
-
-  async function onScore(score) {
-    if (!state.user) return;
-    try {
-      const res = await api('/api/scores', { method: 'POST', body: { game_id: game.id, score } });
-      toast(`+${res.xpGained} XP, +${res.coinsGained} 🪙`, 'success');
-      state.user.coins += res.coinsGained;
-      state.user.xp += res.xpGained;
-      state.user.level = res.newLevel;
-      refreshBest();
-    } catch (e) { toast(e.message, 'error'); }
-  }
-
-  const page = h('div', { class: 'container section', style: `--game-accent: ${['#7c5cff', '#ff5b6b', '#24d1a1', '#ffb020', '#00d1ff'][game.theme || 0]}` },
-    h('div', { style: 'display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; width: 100%;' },
-      h('div', { style: 'text-align: left;' },
-        h('h1', { class: 'game-header' }, `${game.emoji} ${game.name}`),
+  const page = h('div', { class: 'container section' },
+    h('div', { style: 'display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 60px;' },
+      h('div', {},
+        h('h1', { style: 'font-size: 60px;' }, `${game.emoji} ${game.name}`),
         h('p', { style: 'color: var(--text-dim);' }, game.description),
       ),
       h('div', { style: 'display:flex; gap: 10px;' },
         h('button', { class: 'btn', onClick: () => {
           const menu = page.querySelector('.pause-overlay');
           if (menu) menu.style.display = menu.style.display === 'grid' ? 'none' : 'grid';
-        } }, '⏸️ Pause'),
-        h('button', { class: 'btn', onClick: () => playNextSong() }, '⏭️ Next Song'),
-        h('a', { href: `/leaderboards/${game.id}`, 'data-link': true, class: 'btn' }, '🏆 Rank'),
+        } }, '⏸️'),
+        h('a', { href: '/games', 'data-link': true, class: 'btn' }, 'Exit'),
       )
     ),
     h('div', { class: 'game-wrap' },
-      h('div', { 
-        class: 'game-stage', 
-        ref: (el) => stageRef.el = el,
-        tabIndex: 0,
-        onBlur: () => {
-          const menu = page.querySelector('.pause-overlay');
-          if (menu) menu.style.display = 'grid';
-        }
-      }),
+      h('div', { class: 'game-stage', ref: (el) => stageRef.el = el, tabIndex: 0, onBlur: () => {
+        const menu = page.querySelector('.pause-overlay');
+        if (menu) menu.style.display = 'grid';
+      }}),
       h('div', { class: 'game-side' },
         h('div', { class: 'panel' },
-          h('h3', {}, 'Session Info'),
+          h('h3', {}, 'Performance'),
           h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Best'), h('span', { ref: el => statsRef.best = el }, '—')),
-          h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'SFX'), h('span', {}, isSFXEnabled() ? 'ON' : 'OFF')),
-        ),
-        h('div', { class: 'panel' },
-          h('h3', {}, 'Inventory'),
-          h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Extra lives'), h('span', { ref: el => perksRef.lives = el }, '0')),
-          h('button', { class: 'btn btn-primary btn-block', style: 'margin-top:10px;', onClick: () => route('/shop') }, 'Get More')
         )
       )
     ),
     h('div', { class: 'pause-overlay', style: 'display:none;' },
       h('div', { class: 'pause-menu' },
-        h('h2', {}, 'Paused'),
-        h('div', { class: 'stack' },
-          h('button', { class: 'btn btn-primary btn-block', onClick: () => {
-            page.querySelector('.pause-overlay').style.display = 'none';
-            stageRef.el.focus();
-          } }, 'Resume'),
-          h('button', { class: 'btn btn-block', onClick: () => {
-            const enabled = toggleSFX();
-            toast(enabled ? 'SFX ON' : 'SFX OFF', 'success');
-          } }, 'Toggle Sound'),
-          h('button', { class: 'btn btn-block', onClick: () => route('/games') }, 'Back to Games')
-        )
+        h('h2', {}, 'HALTED'),
+        h('button', { class: 'btn btn-primary btn-block', onClick: () => {
+          page.querySelector('.pause-overlay').style.display = 'none';
+          stageRef.el.focus();
+        } }, 'Resume Stream'),
+        h('button', { class: 'btn btn-block', onClick: () => route('/games') }, 'Terminate')
       )
     )
   );
 
-  queueMicrotask(() => {
+  queueMicrotask(async () => {
     setBgRoute(`/games/${game.id}`, game.theme ?? 0);
     if (game.song) playSpecificSong(game.song);
     
     setTimeout(() => {
       loader.classList.add('fade-out');
-      setTimeout(() => {
-        loader.remove();
-        playAnnouncer('Play');
-      }, 500);
+      setTimeout(() => { loader.remove(); playAnnouncer('Play'); }, 500);
     }, 2500);
 
     try {
       game.mount(stageRef.el, {
-        onScore,
+        onScore: async (score) => {
+          if (!state.user) return;
+          const res = await api('/api/scores', { method: 'POST', body: { game_id: game.id, score } });
+          toast(`Synced: +${res.xpGained} XP`, 'success');
+          statsRef.best.textContent = res.best;
+        },
         user: state.user,
         perks: {
           getExtraLives: () => perksState.extraLives,
           consumeExtraLife: () => {
-            if (!state.user || perksState.extraLives <= 0) return false;
-            perksState.extraLives -= 1;
-            if (perksRef.lives) perksRef.lives.textContent = String(perksState.extraLives);
-            return true;
+            if (perksState.extraLives <= 0) return false;
+            perksState.extraLives--; return true;
           },
           getSkin: () => perksState.skin,
         }
       });
-      refreshBest();
-    } catch (e) {
-      stageRef.el.appendChild(h('p', { style: 'color: var(--danger);' }, String(e.message || e)));
-    }
+      if (state.user) {
+        const res = await api(`/api/scores/me/${game.id}`);
+        statsRef.best.textContent = res.best || '0';
+      }
+    } catch (e) { console.error(e); }
   });
 
   return page;

@@ -79,8 +79,8 @@ body {
 /* ─── Hero Section ──────────────────────────────────── */
 .hero {
   min-height: 100vh; display: flex; flex-direction: column; justify-content: center;
-  align-items: center; text-align: center; position: relative; overflow: hidden;
-  padding: 120px 20px;
+  align-items: flex-start; text-align: left; position: relative; overflow: hidden;
+  padding: 120px 5%;
 }
 .hero-title {
   font-family: var(--font-heading); font-size: clamp(60px, 12vw, 160px);
@@ -160,19 +160,28 @@ body {
 }
 .btn-primary:hover { background: var(--neon-cyan); box-shadow: 0 0 30px var(--neon-cyan); }
 
-/* ─── Page Warp Transition ────────────────────────── */
+/* ─── Page Warp Transition (3D Transparent Design) ─── */
 #warp-overlay {
   position: fixed; inset: 0; z-index: 99999; pointer-events: none;
-  background: #fff; transform: scaleY(0); transform-origin: top;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(0px);
+  transform: scaleY(0);
+  transform-origin: top;
+  border-bottom: 1px solid var(--neon-cyan);
+  box-shadow: 0 0 100px rgba(0, 243, 255, 0.2);
 }
 
 /* ─── Footer ────────────────────────────────────────── */
 .site-footer { padding: 120px 0; border-top: 1px solid var(--glass-border); background: #000; }
 
 /* ─── Utilities ─────────────────────────────────────── */
-.container { width: 90%; max-width: 1600px; margin: 0 auto; }
-.section { position: relative; padding: 160px 0; }
+.container { width: 90%; max-width: 1600px; margin: 0 auto; position: relative; z-index: 10; }
+.section { position: relative; padding: 160px 0; z-index: 5; }
 .glow-text { color: var(--neon-cyan); text-shadow: 0 0 20px rgba(0, 243, 255, 0.5); }
+
+/* Editorial Text Alignment */
+h1, h2, h3 { text-align: left; }
+p { text-align: left; max-width: 800px; }
 
 /* ─── Mobile Optimizations ──────────────────────────── */
 @media (max-width: 768px) {
