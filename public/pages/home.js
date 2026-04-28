@@ -57,6 +57,13 @@ export function HomePage() {
       )
     ),
 
+    // Last Player Widget
+    h('section', { class: 'last-player-ticker' },
+      h('div', { class: 'container' },
+        h('div', { id: 'last-player-mount' })
+      )
+    ),
+
     h('section', { class: 'section home-spotlight' },
       h('div', { class: 'container' },
         h('div', { class: 'section-head' },
@@ -168,6 +175,22 @@ export function HomePage() {
       )
     ),
   );
+
+  const lastMount = wrap.querySelector('#last-player-mount');
+  if (lastMount) {
+    api('/api/activity/last')
+      .then(({ last }) => {
+        if (!last) return;
+        lastMount.innerHTML = '';
+        lastMount.appendChild(
+          h('div', { class: 'last-player-banner' },
+            h('span', { class: 'last-player-text' }, `LAST GAMER TO CONQUER ${last.game_id.toUpperCase()}:`),
+            h('span', { class: 'last-player-name' }, last.display_name || last.username)
+          )
+        );
+      })
+      .catch(() => {});
+  }
 
   const grid = wrap.querySelector('#featured-grid');
   if (grid) {

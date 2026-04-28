@@ -109,6 +109,43 @@ const GAME_RELEASE_QUEUE = [
   'minesweeper',
   'tictactoe',
   'pong',
+  'candy-crush',
+  'pacman',
+  'chess',
+  'doodle-jump',
+  'solitaire',
+  'sudoku',
+  'crossy-road',
+  'rps',
+  'flappy-bird',
+  '2048-ext',
+  'wordle',
+  'hangman',
+  'tower-blocks',
+  'archery',
+  'tictactoe-ext',
+  'minesweeper-ext',
+  'speed-typing',
+  'breakout-ext',
+  'ping-pong',
+  'tetris-ext',
+  'tilting-maze',
+  'memory-ext',
+  'number-guess',
+  'snake-ext',
+  'connect-four',
+  'insect-catch',
+  'typing-hero',
+  'dice-roll',
+  'shape-clicker',
+  'typing-pro',
+  'speak-guess',
+  'fruit-slicer',
+  'quiz',
+  'emoji-catcher',
+  'whack-a-mole',
+  'simon-says',
+  'sliding-puzzle',
 ] as const;
 
 const HOME_PAGE_FEATURED_LIMIT = 8;
@@ -243,7 +280,7 @@ app.post('/api/scores', requireAuth, async (c) => {
     `UPDATE tournament_entries
      SET best_score = MAX(best_score, ?)
      WHERE user_id = ? AND tournament_id IN (
-       SELECT id FROM tournaments WHERE game_id = ? AND status = 'active' AND starts_at <= ? AND ends_at >= ?
+        SELECT id FROM tournaments WHERE game_id = ? AND status = 'active' AND starts_at <= ? AND ends_at >= ?
      )`
   ).bind(score, user.id, gameId, now, now).run();
 
@@ -267,6 +304,16 @@ app.get('/api/scores/me/:gameId', requireAuth, async (c) => {
   const row = await c.env.DB.prepare('SELECT MAX(score) AS best FROM scores WHERE user_id = ? AND game_id = ?')
     .bind(user.id, gameId).first<any>();
   return c.json({ best: row?.best ?? 0 });
+});
+
+// ---------- activity ----------
+app.get('/api/activity/last', async (c) => {
+  const row = await c.env.DB.prepare(
+    `SELECT u.username, u.display_name, s.game_id, s.created_at
+     FROM scores s JOIN users u ON u.id = s.user_id
+     ORDER BY s.created_at DESC LIMIT 1`
+  ).first<any>();
+  return c.json({ last: row || null });
 });
 
 // ---------- game saves ----------

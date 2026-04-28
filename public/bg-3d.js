@@ -180,15 +180,19 @@ export function mountBackground() {
   });
 
   state = {
-    setRoute(path) {
+    setRoute(path, paletteIndex = null) {
       const seed = hashSeed(path || '/');
-      const pal = PALETTES[Math.floor(seed * PALETTES.length) % PALETTES.length];
+      const pal = paletteIndex !== null 
+        ? PALETTES[paletteIndex % PALETTES.length]
+        : PALETTES[Math.floor(seed * PALETTES.length) % PALETTES.length];
+      
+      // Smoothly transition seed
       current.seed = seed;
       current.palette = pal;
     },
   };
 }
 
-export function setRoute(path) {
-  if (state) state.setRoute(path);
+export function setRoute(path, paletteIndex = null) {
+  if (state) state.setRoute(path, paletteIndex);
 }

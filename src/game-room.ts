@@ -18,6 +18,8 @@ export class GameRoom {
   roomId: string = '';
   started: boolean = false;
   gameState: any = null;
+  lastTick: number = 0;
+  tickInterval: any = null;
 
   constructor(state: DurableObjectState, _env: Env) {
     this.state = state;
@@ -62,6 +64,10 @@ export class GameRoom {
       if (this.players.size === 0) {
         this.started = false;
         this.gameState = null;
+        if (this.tickInterval) {
+          clearInterval(this.tickInterval);
+          this.tickInterval = null;
+        }
       }
     };
     server.addEventListener('close', onClose);
@@ -119,6 +125,8 @@ export class GameRoom {
       case 'reset': {
         this.started = false;
         this.gameState = null;
+        if (this.tickInterval) clearInterval(this.tickInterval);
+        this.tickInterval = null;
         for (const p of this.players.values()) p.ready = false;
         this.broadcast({ type: 'reset' });
         this.broadcast({ type: 'presence', players: this.publicPlayers() });
@@ -140,9 +148,69 @@ export class GameRoom {
       for (const pid of pids) {
         this.sendTo(pid, { type: 'start', symbol: this.gameState.assignments[pid], turn: this.gameState.turn, board: this.gameState.board });
       }
+    } else if (this.gameId === 'pong') {
+      this.gameState = {
+        p1: { pid: pids[0], y: 160, score: 0 },
+        p2: { pid: pids[1], y: 160, score: 0 },
+        ball: { x: 300, y: 200, vx: 4, vy: 2 },
+        w: 600, h: 400,
+        padH: 80, padW: 10,
+        winner: null,
+      };
+      for (const pid of pids) {
+        this.sendTo(pid, { type: 'start', side: pid === pids[0] ? 'left' : 'right' });
+      }
+      this.lastTick = Date.now();
+      if (this.tickInterval) clearInterval(this.tickInterval);
+      this.tickInterval = setInterval(() => this.tickPong(), 33); // ~30fps authoritative update
     } else {
       this.broadcast({ type: 'start', gameId: this.gameId });
     }
+  }
+
+  tickPong() {
+    if (!this.started || !this.gameState) return;
+    const s = this.gameState;
+    const ball = s.ball;
+
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // Walls
+    if (ball.y < 8 || ball.y > s.h - 8) ball.vy *= -1;
+
+    // Paddles
+    if (ball.x < s.padW + 8 && ball.y > s.p1.y && ball.y < s.p1.y + s.padH && ball.vx < 0) {
+      ball.vx *= -1.05;
+      ball.vy += (ball.y - (s.p1.y + s.padH / 2)) * 0.1;
+    }
+    if (ball.x > s.w - s.padW - 8 && ball.y > s.p2.y && ball.y < s.p2.y + s.padH && ball.vx > 0) {
+      ball.vx *= -1.05;
+      ball.vy += (ball.y - (s.p2.y + s.padH / 2)) * 0.1;
+    }
+
+    // Scoring
+    if (ball.x < 0) {
+      s.p2.score++;
+      this.resetBall();
+    } else if (ball.x > s.w) {
+      s.p1.score++;
+      this.resetBall();
+    }
+
+    if (s.p1.score >= 10 || s.p2.score >= 10) {
+      s.winner = s.p1.score >= 10 ? 'p1' : 'p2';
+      this.started = false;
+      clearInterval(this.tickInterval);
+      this.tickInterval = null;
+    }
+
+    this.broadcast({ type: 'state', ball: s.ball, p1y: s.p1.y, p2y: s.p2.y, p1s: s.p1.score, p2s: s.p2.score, winner: s.winner });
+  }
+
+  resetBall() {
+    if (!this.gameState) return;
+    this.gameState.ball = { x: 300, y: 200, vx: (Math.random() > 0.5 ? 4 : -4), vy: (Math.random() - 0.5) * 4 };
   }
 
   handleMove(pid: string, msg: any) {
@@ -164,6 +232,11 @@ export class GameRoom {
       }
       if (!s.winner && s.board.every((v: any) => v)) s.winner = 'draw';
       this.broadcast({ type: 'state', board: s.board, turn: s.turn, winner: s.winner });
+    } else if (this.gameId === 'pong') {
+      const s = this.gameState;
+      if (!s || !this.started) return;
+      if (pid === s.p1.pid) s.p1.y = msg.y;
+      else if (pid === s.p2.pid) s.p2.y = msg.y;
     }
   }
 }

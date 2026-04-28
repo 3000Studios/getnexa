@@ -1,4 +1,5 @@
 import { h, render, route, state, toast } from './core.js';
+import { initMusic } from './music-player.js';
 import { HomePage } from './pages/home.js';
 import { GamesPage, GamePage } from './pages/games.js';
 import { LoginPage, SignupPage, AccountPage } from './pages/account.js';
@@ -37,6 +38,10 @@ window.addEventListener('popstate', () => render(routes));
     const json = await res.json();
     state.user = json.user || null;
   } catch { state.user = null; }
+  
+  // Initialize background music
+  initMusic();
+  
   render(routes);
 })();
 

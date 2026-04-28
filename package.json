@@ -4,15 +4,16 @@
   "description": "Nexa Arcade - play live HTML5 games, multiplayer, leaderboards, accounts. Hosted on Cloudflare Workers.",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "dev": "node scripts/sync-music.js; wrangler dev",
+    "deploy": "node scripts/sync-music.js; wrangler deploy",
     "db:init": "wrangler d1 execute getnexa-db --file=./schema.sql --remote",
     "db:init-local": "wrangler d1 execute getnexa-db --file=./schema.sql --local",
     "db:migrate": "wrangler d1 execute getnexa-db --file=./migration-001.sql --remote --yes",
     "db:migrate-002": "wrangler d1 execute getnexa-db --file=./migration-002-hourly-featured.sql --remote --yes",
     "db:migrate-002-local": "wrangler d1 execute getnexa-db --file=./migration-002-hourly-featured.sql --local --yes",
     "predeploy": "npm run db:init || true",
-    "tail": "wrangler tail"
+    "tail": "wrangler tail",
+    "sync-music": "node scripts/sync-music.js"
   },
   "engines": {
     "node": ">=20"
