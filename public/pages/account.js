@@ -12,7 +12,7 @@ function DataStream() {
   const el = h('div', { class: 'data-stream' });
   for (let i = 0; i < 30; i++) {
     const col = h('div', { class: 'stream-column', style: `left: ${i * 3.3}%; animation-duration: ${Math.random() * 5 + 5}s; animation-delay: ${Math.random() * 5}s;` }, 
-      Array(20).fill(0).map(() => Math.random() > 0.5 ? '1' : '0').join('<br/>')
+      ...Array(20).fill(0).map(() => [Math.random() > 0.5 ? '1' : '0', h('br')]).flat()
     );
     el.appendChild(col);
   }
