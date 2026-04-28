@@ -3,8 +3,13 @@ import { sfx, attachSfx } from './sfx.js';
 
 export const state = { 
   user: null,
-  isTouch: 'ontouchstart' in window || navigator.maxTouchPoints > 0
+  isTouch: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+  forceVirtual: false,
+  hasGamepad: false
 };
+
+window.addEventListener("gamepadconnected", () => { state.hasGamepad = true; toast('Gamepad Linked', 'success'); });
+window.addEventListener("gamepaddisconnected", () => { state.hasGamepad = false; });
 
 // Hyperscript with auto-SFX attachment
 export function h(tag, attrs = {}, ...children) {

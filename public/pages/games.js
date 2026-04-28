@@ -1,7 +1,25 @@
 import { h, api, AdSlot, state, toast, route } from '../core.js';
 import { GAMES, findGame } from '../games/index.js';
 import { setAdaptiveTheme } from '../bg-3d.js';
-import { playSpecificSong, playNextSong, toggleSFX } from '../music-player.js';
+import { playSpecificSong } from '../music-player.js';
+
+// --- Virtual Controls System ---
+function VirtualControls() {
+  const dispatch = (key, type) => {
+    window.dispatchEvent(new KeyboardEvent(type, { key }));
+  };
+  return h('div', { class: 'virtual-controls' },
+    h('div', { class: 'dpad' },
+      h('button', { class: 'v-btn v-up', onPointerDown: () => dispatch('ArrowUp', 'keydown'), onPointerUp: () => dispatch('ArrowUp', 'keyup') }, '▲'),
+      h('button', { class: 'v-btn v-left', onPointerDown: () => dispatch('ArrowLeft', 'keydown'), onPointerUp: () => dispatch('ArrowLeft', 'keyup') }, '◀'),
+      h('button', { class: 'v-btn v-right', onPointerDown: () => dispatch('ArrowRight', 'keydown'), onPointerUp: () => dispatch('ArrowRight', 'keyup') }, '▶'),
+      h('button', { class: 'v-btn v-down', onPointerDown: () => dispatch('ArrowDown', 'keydown'), onPointerUp: () => dispatch('ArrowDown', 'keyup') }, '▼'),
+    ),
+    h('div', { class: 'action-btns' },
+      h('button', { class: 'v-btn v-action', onPointerDown: () => dispatch(' ', 'keydown'), onPointerUp: () => dispatch(' ', 'keyup') }, '⚡'),
+    )
+  );
+}
 
 // --- Holographic Tilt Effect ---
 function initTilt(el) {
@@ -9,13 +27,7 @@ function initTilt(el) {
     const rect = el.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
-    gsap.to(el, {
-      rotateY: x * 15,
-      rotateX: -y * 15,
-      scale: 1.05,
-      duration: 0.5,
-      ease: 'power2.out'
-    });
+    gsap.to(el, { rotateY: x * 15, rotateX: -y * 15, scale: 1.05, duration: 0.5, ease: 'power2.out' });
   });
   el.addEventListener('mouseleave', () => {
     gsap.to(el, { rotateY: 0, rotateX: 0, scale: 1, duration: 0.5 });
@@ -33,18 +45,14 @@ export function GameCard(game) {
     video.src = `/Videos/${randomVideo}`;
   });
 
-  const card = h('div', { 
+  return h('div', { 
     class: 'game-card reveal-card',
     ref: initTilt,
     onMouseEnter: () => {
       video.play().then(() => video.style.opacity = '0.3');
       setAdaptiveTheme([0x7c5cff, 0xff5b6b, 0x24d1a1, 0xffb020, 0x00d1ff][game.theme || 0]);
     },
-    onMouseLeave: () => {
-      video.pause();
-      video.style.opacity = '0';
-      setAdaptiveTheme(0x00f3ff); // Reset to default cyan
-    },
+    onMouseLeave: () => { video.pause(); video.style.opacity = '0'; setAdaptiveTheme(0x00f3ff); },
     onClick: (e) => {
       e.currentTarget.classList.add('spin-active');
       setTimeout(() => route(`/games/${game.id}`), 600);
@@ -58,8 +66,6 @@ export function GameCard(game) {
       h('p', { style: 'font-size: 14px; color: var(--text-dim);' }, game.short)
     )
   );
-
-  return card;
 }
 
 export function GamesPage() {
@@ -68,158 +74,90 @@ export function GamesPage() {
   const perPage = 12;
 
   const container = h('div', { class: 'page-games' },
-    // Global Activity Ticker
-    h('div', { class: 'activity-ticker' },
-      h('div', { class: 'container' }, 
-        h('div', { class: 'ticker-content' }, 
-          '⚡ NEXA ACTIVITY: Agent "ShadowX" just set a record in Snake! • ARENA ALERT: Prize pool for 2048 hit $100! • NEW OPERATIVE: "User99" joined the Vanguard. • '
-        )
-      )
-    ),
-
+    h('div', { class: 'activity-ticker' }, h('div', { class: 'container' }, h('div', { class: 'ticker-content' }, '⚡ NEXA ACTIVITY: Agent "ShadowX" just set a record in Snake! • ARENA ALERT: Prize pool for 2048 hit $100! • ')) ),
     h('div', { class: 'container section' },
-      // Trending Hero
       h('div', { class: 'trending-hero reveal-text' },
         h('video', { class: 'trending-video', autoplay: true, muted: true, loop: true, src: '/Videos/139010-770938030_medium.mp4' }),
         h('div', { class: 'trending-content' },
           h('div', { class: 'section-eyebrow', style: 'color: var(--neon-gold);' }, 'TRENDING OPERATION'),
           h('h1', { style: 'font-size: 80px;' }, 'Doodle Jump: The Glitch'),
-          h('p', { style: 'margin: 20px 0 40px; font-size: 18px;' }, 'Outrun the glitch. Reclaim the platform. Join 4k+ agents in the climb.'),
           h('button', { class: 'btn btn-primary', onClick: () => route('/games/doodle-jump') }, 'Step into the Grid')
         )
       ),
-
       h('div', { style: 'display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 60px;' },
-        h('div', {},
-          h('h2', { style: 'font-size: 60px;' }, 'THE ARCHIVE'),
-          h('p', { style: 'color: var(--text-dim);' }, 'Explore the verified collection of Nexa legends.')
-        ),
-        h('div', { style: 'display:flex; gap: 20px;' },
-          h('input', { 
-            placeholder: 'Search by title or vibe (e.g. "retro")...', 
-            class: 'search', 
-            style: 'width: 300px; padding: 15px 0; background: transparent; border: none; border-bottom: 1px solid var(--glass-border); color: #fff; font-size: 16px; outline: none;', 
-            onInput: (e) => { query = e.target.value.toLowerCase(); page = 1; update(); } 
-          })
-        )
+        h('div', {}, h('h2', { style: 'font-size: 60px;' }, 'THE ARCHIVE'), h('p', { color: 'var(--text-dim)' }, 'Explore the verified collection of Nexa legends.')),
+        h('input', { placeholder: 'Search...', class: 'search', onInput: (e) => { query = e.target.value.toLowerCase(); page = 1; update(); } })
       ),
-
       h('div', { id: 'games-grid', class: 'grid' }),
-      h('div', { id: 'pagination', style: 'margin-top: 60px; display: flex; gap: 10px; justify-content: center;' }),
-      h('div', { style: 'margin-top: 100px;' }, AdSlot('728x90', 'Sponsored Stream'))
+      h('div', { id: 'pagination', style: 'margin-top: 60px; display: flex; gap: 10px; justify-content: center;' })
     )
   );
 
   function update() {
     const grid = container.querySelector('#games-grid');
-    const pag = container.querySelector('#pagination');
-    if (!grid || !pag) return;
-
-    grid.innerHTML = '';
-    pag.innerHTML = '';
-
-    const filtered = GAMES.filter(g => {
-      const q = query.toLowerCase();
-      if (!q) return true;
-      if (g.name.toLowerCase().includes(q)) return true;
-      if (g.short.toLowerCase().includes(q)) return true;
-      // "Vibe" search
-      if (q === 'retro' && ['Pac-Man', 'Snake', 'Tetris'].includes(g.name)) return true;
-      if (q === 'hard' && ['Flappy Bird', '2048'].includes(g.name)) return true;
-      return false;
-    });
-    
-    const totalPages = Math.ceil(filtered.length / perPage);
+    const filtered = GAMES.filter(g => !query || g.name.toLowerCase().includes(query) || g.short.toLowerCase().includes(query));
     const start = (page - 1) * perPage;
-    const paged = filtered.slice(start, start + perPage);
-
-    paged.forEach(g => grid.appendChild(GameCard(g)));
-
-    if (totalPages > 1) {
-      for (let i = 1; i <= totalPages; i++) {
-        pag.appendChild(h('button', { 
-          class: `btn ${page === i ? 'btn-primary' : ''}`, 
-          style: 'padding: 10px 20px; font-size: 14px;',
-          onClick: () => { page = i; update(); window.scrollTo({ top: 0, behavior: 'smooth' }); } 
-        }, i));
-      }
-    }
-    if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
+    grid.innerHTML = '';
+    filtered.slice(start, start + perPage).forEach(g => grid.appendChild(GameCard(g)));
   }
-
   update();
   return container;
 }
 
 export function GamePage({ params }) {
   const game = findGame(params.id);
-  if (!game) return h('div', { class: 'container section' }, h('h2', {}, 'System Error: Operative Missing'));
+  if (!game) return h('div', {}, '404');
 
   const stageRef = { el: null };
-  const statsRef = { best: null };
+  const vControlsRef = { el: null };
 
   const loader = h('div', { class: 'game-loader-overlay' },
     h('div', { class: 'loader-name' }, state.user?.username || 'ANONYMOUS'),
-    h('div', { class: 'loader-ready' }, 'SYNCHRONIZING GRID...')
+    h('div', { class: 'loader-ready' }, 'SYNCHRONIZING CONTROLS...')
   );
   document.body.appendChild(loader);
 
   const page = h('div', { class: 'container section' },
-    h('div', { style: 'display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 60px;' },
-      h('div', {},
-        h('h1', { style: 'font-size: 60px;' }, `${game.emoji} ${game.name}`),
-        h('p', { style: 'color: var(--text-dim);' }, game.description),
-      ),
+    h('div', { style: 'display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px;' },
+      h('div', {}, h('h1', { style: 'font-size: 48px;' }, `${game.emoji} ${game.name}`)),
       h('div', { style: 'display:flex; gap: 10px;' },
-        h('button', { class: 'btn', onClick: () => {
-          const menu = page.querySelector('.pause-overlay');
-          if (menu) menu.style.display = menu.style.display === 'grid' ? 'none' : 'grid';
-        } }, '⏸️'),
-        h('a', { href: '/games', 'data-link': true, class: 'btn' }, 'Exit Grid'),
+        h('button', { class: 'btn', onClick: () => { const m = page.querySelector('.pause-overlay'); m.style.display = m.style.display === 'grid' ? 'none' : 'grid'; } }, '⏸️'),
+        h('a', { href: '/games', 'data-link': true, class: 'btn' }, 'Exit')
       )
     ),
     h('div', { class: 'game-wrap' },
-      h('div', { class: 'game-stage', ref: (el) => stageRef.el = el, tabIndex: 0, onBlur: () => {
-        const menu = page.querySelector('.pause-overlay');
-        if (menu) menu.style.display = 'grid';
-      }}),
+      h('div', { class: 'game-stage', ref: (el) => stageRef.el = el, tabIndex: 0 }),
       h('div', { class: 'game-side' },
         h('div', { class: 'panel' },
-          h('h3', {}, 'Neural Sync'),
-          h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Sync Rank'), h('span', { ref: el => statsRef.best = el }, '—')),
+          h('h3', {}, 'Controller Link'),
+          h('div', { style: 'margin-top: 15px;' },
+            h('label', { class: 'v-option', style: 'display:block; margin-bottom: 10px;' }, 
+              h('input', { type: 'radio', name: 'ctrl', checked: !state.forceVirtual, onChange: () => { state.forceVirtual = false; route(location.pathname, false); } }), ' Auto-Detect'
+            ),
+            h('label', { class: 'v-option', style: 'display:block; margin-bottom: 10px;' }, 
+              h('input', { type: 'radio', name: 'ctrl', checked: state.forceVirtual, onChange: () => { state.forceVirtual = true; route(location.pathname, false); } }), ' Virtual D-Pad (Manual)'
+            ),
+            h('div', { style: 'font-size: 12px; color: var(--neon-cyan); margin-top: 10px;' }, 
+              state.hasGamepad ? '✅ Gamepad Connected' : '⌨️ Keyboard/Mouse Active'
+            )
+          )
         )
       )
     ),
+    (state.isTouch || state.forceVirtual) && VirtualControls(),
     h('div', { class: 'pause-overlay', style: 'display:none;' },
       h('div', { class: 'pause-menu' },
-        h('h2', {}, 'HALTED'),
-        h('button', { class: 'btn btn-primary btn-block', onClick: () => {
-          page.querySelector('.pause-overlay').style.display = 'none';
-          stageRef.el.focus();
-        } }, 'Resume Sync'),
-        h('button', { class: 'btn btn-block', onClick: () => route('/games') }, 'Terminate')
+        h('h2', {}, 'PAUSED'),
+        h('button', { class: 'btn btn-primary btn-block', onClick: () => { page.querySelector('.pause-overlay').style.display = 'none'; stageRef.el.focus(); } }, 'Resume'),
+        h('button', { class: 'btn btn-block', onClick: () => route('/games') }, 'Quit')
       )
     )
   );
 
-  queueMicrotask(async () => {
-    if (game.song) playSpecificSong(game.song);
-    setTimeout(() => {
-      loader.classList.add('fade-out');
-      setTimeout(() => { loader.remove(); }, 500);
-    }, 2500);
-
-    try {
-      game.mount(stageRef.el, {
-        onScore: async (score) => {
-          if (!state.user) return;
-          const res = await api('/api/scores', { method: 'POST', body: { game_id: game.id, score } });
-          toast(`Data Logged: ${score} pts`, 'success');
-          statsRef.best.textContent = res.best;
-        },
-        user: state.user
-      });
-    } catch (e) { console.error(e); }
+  queueMicrotask(() => {
+    setTimeout(() => { loader.classList.add('fade-out'); setTimeout(() => loader.remove(), 500); }, 2000);
+    game.mount(stageRef.el, { onScore: (s) => console.log(s), user: state.user });
+    stageRef.el.focus();
   });
 
   return page;
