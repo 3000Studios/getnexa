@@ -45,13 +45,22 @@ export function GameCard(game) {
     setTimeout(() => route(`/games/${game.id}`), 400);
   };
 
+  const themeColors = [
+    'linear-gradient(135deg, #7c5cff, #00d1ff)', // Theme 0
+    'linear-gradient(135deg, #ff5b6b, #ffb020)', // Theme 1
+    'linear-gradient(135deg, #24d1a1, #00d1ff)', // Theme 2
+    'linear-gradient(135deg, #ffb020, #ff5b6b)', // Theme 3
+    'linear-gradient(135deg, #00d1ff, #7c5cff)'  // Theme 4
+  ];
+  const cardGradient = themeColors[game.theme || 0];
+
   return h('div', { class: 'game-card', onClick: onPlay },
-    h('div', { class: 'emoji' }, game.emoji),
+    h('div', { class: 'emoji', style: `background: ${cardGradient};` }, game.emoji),
     h('div', { class: 'card-info' },
       h('h3', {}, game.name),
       h('p', {}, game.short)
     ),
-    game.new && h('span', { class: 'badge', style: 'position:absolute; top:24px; right:24px; font-size:10px; opacity:0.6;' }, 'New')
+    game.new && h('span', { class: 'badge', style: 'position:absolute; top:24px; right:24px; background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 20px; font-size:10px; font-weight: bold; backdrop-filter: blur(5px);' }, 'NEW')
   );
 }
 
@@ -63,7 +72,7 @@ export function GamesPage() {
     h('div', { style: 'display:flex; justify-content: space-between; align-items: center; margin-bottom: 30px; width: 100%;' },
       h('div', { style: 'text-align: left;' },
         h('h1', { class: 'game-header' }, 'Arcade Catalog'),
-        h('p', { style: 'color: var(--text-dim);' }, 'Select a challenge to begin. Every game features unique rewards and live leaderboards.')
+        h('p', { style: 'color: var(--text-dim);' }, 'Explore our entire collection of high-performance neon arcade games.')
       ),
       h('div', { class: 'music-mini-controls' },
         h('button', { class: 'btn', style: 'margin-right: 10px;', onClick: playNextSong, title: 'Next Song' }, '⏭️'),
@@ -76,7 +85,7 @@ export function GamesPage() {
     ),
     h('div', { style: 'margin-bottom: 60px; width: 100%; display: flex; justify-content: center;' },
       h('input', { 
-        placeholder: 'Search games…', 
+        placeholder: 'Search our collection of 40+ games…', 
         class: 'search', 
         style: 'max-width: 600px; width: 100%; padding: 20px 40px; border-radius: 99px; background: var(--glass); border: 1px solid var(--glass-border); color: var(--text); font-family: inherit; font-size: 18px;', 
         onInput: (e) => { query = e.target.value.toLowerCase(); update(); } 
@@ -90,13 +99,19 @@ export function GamesPage() {
     const grid = container.querySelector('#games-grid');
     if (!grid) return;
     grid.innerHTML = '';
-    const orderedGames = publishedOrder.map((id) => findGame(id)).filter(Boolean);
+    
+    // Combine published order with any remaining games to ensure everything is visible
+    const orderedIds = [...new Set([...publishedOrder, ...GAMES.map(g => g.id)])];
+    const orderedGames = orderedIds.map((id) => findGame(id)).filter(Boolean);
+    
     const filtered = orderedGames.filter(g => !query || g.name.toLowerCase().includes(query) || g.short.toLowerCase().includes(query));
+    
     filtered.forEach(g => {
       const card = GameCard(g);
       card.classList.add('reveal-card');
       grid.appendChild(card);
     });
+    
     // Refresh ScrollTrigger after grid update
     if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
   }
@@ -109,7 +124,10 @@ export function GamesPage() {
         update();
       }
     })
-    .catch(() => {});
+    .catch(() => {
+      // Fallback to default grid if API fails
+      update();
+    });
 
   return container;
 }

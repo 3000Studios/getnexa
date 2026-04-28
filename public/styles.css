@@ -30,6 +30,11 @@ body {
   overflow-x: hidden;
 }
 
+#app {
+  position: relative;
+  z-index: 1;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-deep); }
@@ -117,8 +122,25 @@ body {
 }
 .game-card:hover .card-video { opacity: 0.4; }
 
-.game-card .emoji { font-size: 80px; margin: 40px; filter: drop-shadow(0 0 20px var(--neon-purple)); }
-.card-info { padding: 40px; margin-top: auto; }
+.game-card .emoji { 
+  font-size: 100px; 
+  margin: 0; 
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%);
+}
+.game-card:hover .emoji {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.card-info { 
+  padding: 30px; 
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(10px);
+}
 .card-info h3 { font-family: var(--font-heading); font-size: 32px; margin-bottom: 12px; }
 .card-info p { color: var(--text-dim); font-size: 15px; font-weight: 300; }
 
