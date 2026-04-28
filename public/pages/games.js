@@ -35,19 +35,6 @@ function createExplosion(x, y) {
     };
     requestAnimationFrame(animate);
   }
-  // Fake explosion sound via Web Audio if needed, or just play a synthesized pop
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(150, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(10, ctx.currentTime + 0.5);
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(); osc.stop(ctx.currentTime + 0.5);
-  } catch {}
 }
 
 export function GameCard(game) {
@@ -71,42 +58,59 @@ export function GameCard(game) {
 export function GamesPage() {
   let query = '';
   let publishedOrder = GAMES.map((g) => g.id);
+  
   const container = h('div', { class: 'container section' },
-    h('div', { style: 'display:flex; justify-content: space-between; align-items: center; margin-bottom: 30px;' },
-      h('div', {},
+    h('div', { style: 'display:flex; justify-content: space-between; align-items: center; margin-bottom: 30px; width: 100%;' },
+      h('div', { style: 'text-align: left;' },
         h('h1', { class: 'game-header' }, 'Arcade Catalog'),
-        h('p', {}, 'Select a challenge to begin. Every game features unique rewards and live leaderboards.')
+        h('p', { style: 'color: var(--text-dim);' }, 'Select a challenge to begin. Every game features unique rewards and live leaderboards.')
       ),
       h('div', { class: 'music-mini-controls' },
-        h('button', { class: 'music-btn', onClick: playNextSong, title: 'Next Song' }, '⏭️'),
-        h('button', { class: 'music-btn', onClick: (e) => {
+        h('button', { class: 'btn', style: 'margin-right: 10px;', onClick: playNextSong, title: 'Next Song' }, '⏭️'),
+        h('button', { class: 'btn', onClick: (e) => {
           const enabled = toggleSFX();
           e.target.textContent = enabled ? '🔊' : '🔇';
           toast(enabled ? 'Sound Effects Enabled' : 'Sound Effects Muted', 'success');
         } }, '🔊')
       )
     ),
-    h('div', { style: 'margin-bottom: 30px;' },
-      h('input', { placeholder: 'Search games…', class: 'search', style: 'max-width: 400px; padding: 14px 20px; border-radius: 99px; background: var(--panel); border: 1px solid var(--border); color: var(--text);', onInput: (e) => { query = e.target.value.toLowerCase(); update(); } })
+    h('div', { style: 'margin-bottom: 60px; width: 100%; display: flex; justify-content: center;' },
+      h('input', { 
+        placeholder: 'Search games…', 
+        class: 'search', 
+        style: 'max-width: 600px; width: 100%; padding: 20px 40px; border-radius: 99px; background: var(--glass); border: 1px solid var(--glass-border); color: var(--text); font-family: inherit; font-size: 18px;', 
+        onInput: (e) => { query = e.target.value.toLowerCase(); update(); } 
+      })
     ),
     h('div', { id: 'games-grid', class: 'grid' }, ...GAMES.map(GameCard)),
     AdSlot('728x90', 'Sponsored')
   );
+
   function update() {
     const grid = container.querySelector('#games-grid');
+    if (!grid) return;
     grid.innerHTML = '';
     const orderedGames = publishedOrder.map((id) => findGame(id)).filter(Boolean);
     const filtered = orderedGames.filter(g => !query || g.name.toLowerCase().includes(query) || g.short.toLowerCase().includes(query));
-    filtered.forEach(g => grid.appendChild(GameCard(g)));
+    filtered.forEach(g => {
+      const card = GameCard(g);
+      card.classList.add('reveal-card');
+      grid.appendChild(card);
+    });
+    // Refresh ScrollTrigger after grid update
+    if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
   }
+
   api('/api/catalog')
-    .then(({ order }) => {
+    .then((res) => {
+      const order = res.order || res.featured || [];
       if (Array.isArray(order) && order.length) {
         publishedOrder = order;
         update();
       }
     })
     .catch(() => {});
+
   return container;
 }
 
@@ -147,10 +151,10 @@ export function GamePage({ params }) {
   }
 
   const page = h('div', { class: 'container section', style: `--game-accent: ${['#7c5cff', '#ff5b6b', '#24d1a1', '#ffb020', '#00d1ff'][game.theme || 0]}` },
-    h('div', { style: 'display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;' },
-      h('div', {},
+    h('div', { style: 'display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; width: 100%;' },
+      h('div', { style: 'text-align: left;' },
         h('h1', { class: 'game-header' }, `${game.emoji} ${game.name}`),
-        h('p', {}, game.description),
+        h('p', { style: 'color: var(--text-dim);' }, game.description),
       ),
       h('div', { style: 'display:flex; gap: 10px;' },
         h('button', { class: 'btn', onClick: () => {
@@ -167,7 +171,6 @@ export function GamePage({ params }) {
         ref: (el) => stageRef.el = el,
         tabIndex: 0,
         onBlur: () => {
-          // Pause logic: show pause menu
           const menu = page.querySelector('.pause-overlay');
           if (menu) menu.style.display = 'grid';
         }
@@ -185,7 +188,6 @@ export function GamePage({ params }) {
         )
       )
     ),
-    // Pause Overlay
     h('div', { class: 'pause-overlay', style: 'display:none;' },
       h('div', { class: 'pause-menu' },
         h('h2', {}, 'Paused'),
@@ -204,7 +206,6 @@ export function GamePage({ params }) {
     )
   );
 
-  // Trigger immersive flow
   queueMicrotask(() => {
     setBgRoute(`/games/${game.id}`, game.theme ?? 0);
     if (game.song) playSpecificSong(game.song);

@@ -41,12 +41,14 @@ export function HomePage() {
 
   async function loadGames() {
     try {
-      const { featured } = await api('/api/catalog');
+      const res = await api('/api/catalog');
+      const featured = res.featured || [];
       const grid = container.querySelector('#featured-grid');
+      if (!grid) return;
       grid.innerHTML = '';
       
       const GAMES_DATA = await import('../games/index.js');
-      const games = featured.map(id => GAMES_DATA.findGame(id)).filter(Boolean);
+      const games = (featured || []).map(id => GAMES_DATA.findGame(id)).filter(Boolean);
       
       // Video catalog for card previews
       const videoRes = await fetch('/Videos/videos.json');
