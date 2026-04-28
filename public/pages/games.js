@@ -65,6 +65,25 @@ export function GameCard(game) {
   );
 }
 
+// --- Virtual Controls for Mobile ---
+function VirtualControls() {
+  const sendKey = (key, type) => {
+    window.dispatchEvent(new KeyboardEvent(type, { key }));
+  };
+
+  return h('div', { class: 'virtual-controls' },
+    h('div', { class: 'dpad' },
+      h('button', { class: 'v-btn v-up', onPointerDown: () => sendKey('ArrowUp', 'keydown'), onPointerUp: () => sendKey('ArrowUp', 'keyup') }, '▲'),
+      h('button', { class: 'v-btn v-left', onPointerDown: () => sendKey('ArrowLeft', 'keydown'), onPointerUp: () => sendKey('ArrowLeft', 'keyup') }, '◀'),
+      h('button', { class: 'v-btn v-right', onPointerDown: () => sendKey('ArrowRight', 'keydown'), onPointerUp: () => sendKey('ArrowRight', 'keyup') }, '▶'),
+      h('button', { class: 'v-btn v-down', onPointerDown: () => sendKey('ArrowDown', 'keydown'), onPointerUp: () => sendKey('ArrowDown', 'keyup') }, '▼')
+    ),
+    h('div', { class: 'action-btns' },
+      h('button', { class: 'v-btn', style: 'width: 100px; height: 100px; font-size: 32px;', onPointerDown: () => sendKey(' ', 'keydown'), onPointerUp: () => sendKey(' ', 'keyup') }, '⚡')
+    )
+  );
+}
+
 export function GamesPage() {
   let query = '';
   let page = 1;
@@ -178,6 +197,7 @@ export function GamePage({ params }) {
         )
       )
     ),
+    state.isTouch && VirtualControls(),
     h('div', { class: 'pause-overlay', style: 'display:none;' },
       h('div', { class: 'pause-menu' },
         h('h2', {}, 'HALTED'),

@@ -154,6 +154,29 @@ body {
 .card-info h3 { font-family: var(--font-heading); font-size: 32px; margin-bottom: 12px; }
 .card-info p { color: var(--text-dim); font-size: 15px; font-weight: 300; }
 
+/* ─── Virtual Controls (Mobile) ─────────────────────── */
+.virtual-controls {
+  position: fixed; bottom: 40px; left: 0; right: 0;
+  display: flex; justify-content: space-between; padding: 0 40px;
+  pointer-events: none; z-index: 1000;
+}
+.dpad, .action-btns { pointer-events: auto; display: grid; gap: 10px; }
+.dpad { grid-template-areas: ". up ." "left . right" ". down ."; }
+.action-btns { grid-template-columns: 1fr; align-items: flex-end; }
+
+.v-btn {
+  width: 70px; height: 70px; background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 50%; color: #fff; font-size: 24px;
+  display: flex; align-items: center; justify-content: center;
+  user-select: none; touch-action: none;
+}
+.v-btn:active { background: var(--neon-cyan); scale: 0.9; box-shadow: 0 0 20px var(--neon-cyan); }
+.v-up { grid-area: up; }
+.v-down { grid-area: down; }
+.v-left { grid-area: left; }
+.v-right { grid-area: right; }
+
 /* ─── Interactive Elements ──────────────────────────── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center;

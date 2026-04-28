@@ -1,7 +1,10 @@
 import { mountBackground, setRoute as setBgRoute } from './bg-3d.js';
 import { sfx, attachSfx } from './sfx.js';
 
-export const state = { user: null };
+export const state = { 
+  user: null,
+  isTouch: 'ontouchstart' in window || navigator.maxTouchPoints > 0
+};
 
 // Hyperscript with auto-SFX attachment
 export function h(tag, attrs = {}, ...children) {
