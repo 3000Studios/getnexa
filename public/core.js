@@ -36,12 +36,12 @@ export async function route(path, push = true) {
   
   // Page Warp Transition
   const warp = document.getElementById('warp-overlay');
-  if (warp) {
+  if (warp && typeof gsap !== 'undefined') {
     sfx.transition();
-    await gsap.to(warp, { scaleY: 1, duration: 0.5, ease: 'expo.inOut', transformOrigin: 'bottom' });
+    await gsap.to(warp, { scaleY: 1, duration: 0.5, ease: 'linear', transformOrigin: 'bottom' });
     render(currentRoutes);
     window.scrollTo(0, 0);
-    await gsap.to(warp, { scaleY: 0, duration: 0.5, ease: 'expo.inOut', transformOrigin: 'top' });
+    await gsap.to(warp, { scaleY: 0, duration: 0.5, ease: 'linear', transformOrigin: 'top' });
   } else {
     render(currentRoutes);
   }
@@ -87,33 +87,39 @@ export function render(routes) {
 }
 
 function initScrollAnimations() {
-  gsap.registerPlugin(ScrollTrigger);
+  if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
   
-  // Reveal Text
-  gsap.utils.toArray('.reveal-text').forEach(el => {
-    gsap.to(el, {
-      opacity: 1, y: 0, filter: 'blur(0px)', duration: 1, ease: 'expo.out',
-      scrollTrigger: { trigger: el, start: 'top 90%' }
+  try {
+    gsap.registerPlugin(ScrollTrigger);
+    
+    // Reveal Text
+    gsap.utils.toArray('.reveal-text').forEach(el => {
+      gsap.to(el, {
+        opacity: 1, y: 0, filter: 'blur(0px)', duration: 1, ease: 'expo.out',
+        scrollTrigger: { trigger: el, start: 'top 90%' }
+      });
     });
-  });
 
-  // Reveal Cards
-  gsap.utils.toArray('.reveal-card').forEach((el, i) => {
-    gsap.to(el, {
-      opacity: 1, scale: 1, y: 0, filter: 'blur(0px)', duration: 1.2, ease: 'expo.out', delay: i * 0.1,
-      scrollTrigger: { trigger: el, start: 'top 85%' }
+    // Reveal Cards
+    gsap.utils.toArray('.reveal-card').forEach((el, i) => {
+      gsap.to(el, {
+        opacity: 1, scale: 1, y: 0, filter: 'blur(0px)', duration: 1.2, ease: 'expo.out', delay: i * 0.1,
+        scrollTrigger: { trigger: el, start: 'top 85%' }
+      });
     });
-  });
 
-  // Sticky Header Logic
-  const header = document.querySelector('.site-header');
-  ScrollTrigger.create({
-    start: 'top -50',
-    onUpdate: (self) => {
-      if (self.direction === 1) header.classList.add('scrolled');
-      else if (self.scroll() < 50) header.classList.remove('scrolled');
+    // Sticky Header Logic
+    const header = document.querySelector('.site-header');
+    if (header) {
+      ScrollTrigger.create({
+        start: 'top -50',
+        onUpdate: (self) => {
+          if (self.direction === 1) header.classList.add('scrolled');
+          else if (self.scroll() < 50) header.classList.remove('scrolled');
+        }
+      });
     }
-  });
+  } catch (e) { console.error("GSAP Error:", e); }
 }
 
 function wireLinks(root) {
@@ -158,6 +164,44 @@ function Footer() {
 
 function NotFound() {
   return h('div', { class: 'container section' }, h('h1', {}, '404'), h('a', { href: '/', 'data-link': true, class: 'btn' }, 'Back Home'));
+}
+
+export function ensureToastContainer() {
+  if (document.getElementById('toast-container')) return;
+  const c = document.createElement('div');
+  c.id = 'toast-container';
+  c.className = 'toast-container';
+  document.body.appendChild(c);
+}
+
+export function toast(message, type = '') {
+  ensureToastContainer();
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = message;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(10px)'; }, 3000);
+  setTimeout(() => t.remove(), 3500);
+}
+
+export function AdSlot(size = '728x90', label = 'Advertisement', slotId = '') {
+  const wrap = h('div', { class: 'ad-slot', 'aria-label': label });
+  if (slotId) {
+    const ins = document.createElement('ins');
+    ins.className = 'adsbygoogle';
+    ins.style.display = 'block';
+    ins.style.width = '100%';
+    ins.setAttribute('data-ad-client', 'ca-pub-5800977493749262');
+    ins.setAttribute('data-ad-slot', slotId);
+    ins.setAttribute('data-ad-format', 'auto');
+    ins.setAttribute('data-full-width-responsive', 'true');
+    wrap.appendChild(ins);
+    queueMicrotask(() => { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch {} });
+  } else {
+    wrap.appendChild(h('small', { style: 'font-size: 8px; color: var(--text-dim);' }, `${label} (${size})`));
+  }
+  return wrap;
 }
 
 export async function api(path, opts = {}) {
