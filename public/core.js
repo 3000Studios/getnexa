@@ -121,40 +121,53 @@ function Header() {
 
 function Footer() {
   const year = new Date().getFullYear();
+  const videoRef = { el: null };
+
+  const loadRandomVideo = async () => {
+    try {
+      const res = await fetch('/Videos/videos.json');
+      const list = await res.json();
+      if (list.length) {
+        const video = list[Math.floor(Math.random() * list.length)];
+        if (videoRef.el) {
+          videoRef.el.src = `/Videos/${video}`;
+          videoRef.el.play().catch(() => {});
+        }
+      }
+    } catch {}
+  };
+
+  queueMicrotask(loadRandomVideo);
+
   return h('footer', { class: 'site-footer' },
     h('div', { class: 'container' },
-      h('div', { class: 'footer-grid' },
+      h('div', { class: 'footer-video-wrap' },
+        h('video', { ref: el => videoRef.el = el, autoplay: true, muted: true, loop: true, playsinline: true }),
+        h('div', { class: 'footer-video-label' }, 'LIVE STREAM')
+      ),
+      h('div', { class: 'footer-grid', style: 'margin-top: 40px;' },
         h('div', { class: 'footer-col' },
           h('div', { class: 'brand', style: 'margin-bottom: 12px;' },
             h('div', { class: 'logo-mark' }, 'N'),
             h('span', {}, 'Nexa Arcade')
           ),
-          h('p', { style: 'margin:0; max-width: 360px;' },
+          h('p', { style: 'margin:0; max-width: 360px; font-size: 8px;' },
             'Nexa Arcade is a free online gaming hub — play browser games, compete on leaderboards, challenge friends, and collect rewards. Built and hosted on Cloudflare.'),
         ),
         h('div', { class: 'footer-col' },
-          h('h4', {}, 'Play'),
-          h('a', { href: '/games', 'data-link': true }, 'All Games'),
-          h('a', { href: '/tournaments', 'data-link': true }, 'Tournaments'),
-          h('a', { href: '/leaderboards', 'data-link': true }, 'Leaderboards'),
-          h('a', { href: '/shop', 'data-link': true }, 'Shop'),
+          h('h4', { style: 'font-size: 8px;' }, 'Play'),
+          h('a', { href: '/games', 'data-link': true, style: 'font-size: 8px;' }, 'All Games'),
+          h('a', { href: '/tournaments', 'data-link': true, style: 'font-size: 8px;' }, 'Tournaments'),
         ),
         h('div', { class: 'footer-col' },
-          h('h4', {}, 'Creators'),
-          h('a', { href: '/creators', 'data-link': true }, 'Nexa Studio'),
-          h('a', { href: '/about', 'data-link': true }, 'About'),
-          h('a', { href: '/contact', 'data-link': true }, 'Contact'),
-        ),
-        h('div', { class: 'footer-col' },
-          h('h4', {}, 'Legal'),
-          h('a', { href: '/privacy', 'data-link': true }, 'Privacy Policy'),
-          h('a', { href: '/terms', 'data-link': true }, 'Terms of Service'),
-          h('a', { href: '/cookies', 'data-link': true }, 'Cookie Policy'),
+          h('h4', { style: 'font-size: 8px;' }, 'Legal'),
+          h('a', { href: '/privacy', 'data-link': true, style: 'font-size: 8px;' }, 'Privacy'),
+          h('a', { href: '/terms', 'data-link': true, style: 'font-size: 8px;' }, 'Terms'),
         ),
       ),
-      h('div', { class: 'footer-bottom' },
-        h('div', {}, `© ${year} Nexa Arcade. All rights reserved.`),
-        h('div', {}, 'Made with ❤️ on Cloudflare')
+      h('div', { class: 'footer-bottom', style: 'font-size: 8px;' },
+        h('div', {}, `© ${year} Nexa Arcade.`),
+        h('div', {}, 'Made on Cloudflare')
       )
     )
   );

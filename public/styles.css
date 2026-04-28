@@ -27,8 +27,16 @@ html, body {
   font-family: var(--8bit-font);
   font-size: 12px;
   line-height: 1.6;
-  overflow-x: hidden;
   min-height: 100vh;
+  position: relative;
+}
+
+#bg-3d { position: fixed; inset: 0; z-index: -2; pointer-events: none; }
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -3; pointer-events: none;
+  background:
+    radial-gradient(80% 50% at 50% 0%, rgba(5, 9, 26, 0.4), transparent 70%),
+    linear-gradient(180deg, rgba(5, 9, 26, 0.3) 0%, rgba(5, 9, 26, 0.65) 60%, rgba(5, 9, 26, 0.85) 100%);
 }
 
 /* Site Perimeter Edge Design */
@@ -142,4 +150,18 @@ h3 { font-size: 14px; }
   .nav { justify-content: center; }
   .nav-spacer { display: none; }
   .grid { grid-template-columns: 1fr; }
+}
+
+/* ─── Footer Video ──────────────────────────────────── */
+.footer-video-wrap {
+  width: 100%; max-width: 800px; margin: 40px auto 0;
+  border: 4px solid var(--border-strong);
+  box-shadow: 10px 10px 0px #000;
+  background: #000; overflow: hidden; position: relative;
+  aspect-ratio: 16/9;
+}
+.footer-video-wrap video { width: 100%; height: 100%; object-fit: cover; }
+.footer-video-label {
+  position: absolute; bottom: 10px; left: 10px;
+  background: #000; color: #fff; padding: 4px 8px; font-size: 8px; border: 2px solid #fff;
 }
