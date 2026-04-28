@@ -70,14 +70,19 @@ export function HomePage() {
         });
       }
 
-      // Load Leaders for Marquee
+      // Load Leaders and Last Player for Marquee
       const leadersRes = await api('/api/leaderboards/global');
       const marquee = container.querySelector('#marquee-content');
       if (marquee && leadersRes.leaders) {
         const top3 = leadersRes.leaders.slice(0, 3);
-        const text = top3.map((l, i) => `#${i+1} ${l.username.toUpperCase()} ${l.totalScore} PTS`).join(' • ');
+        const lastPlayer = leadersRes.last_player || (top3[0]?.username) || 'GUEST';
+        
+        const text = `LAST AGENT ACTIVE: ${lastPlayer.toUpperCase()} • TOP PLAYERS: ` + 
+                     top3.map((l, i) => `#${i+1} ${l.username.toUpperCase()} (${l.totalScore})`).join(' • ');
+        
         marquee.textContent = `${text} • ${text} • ${text} • `;
-        marquee.style.opacity = '0.4';
+        marquee.style.opacity = '0.6';
+        marquee.style.color = 'var(--neon-cyan)';
       }
 
       ScrollTrigger.refresh();

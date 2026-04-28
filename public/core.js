@@ -37,11 +37,17 @@ export async function route(path, push = true) {
   // Page Warp Transition
   const warp = document.getElementById('warp-overlay');
   if (warp && typeof gsap !== 'undefined') {
-    sfx.transition();
-    await gsap.to(warp, { scaleY: 1, backdropFilter: 'blur(30px)', duration: 0.6, ease: 'expo.inOut', transformOrigin: 'bottom' });
-    render(currentRoutes);
-    window.scrollTo(0, 0);
-    await gsap.to(warp, { scaleY: 0, backdropFilter: 'blur(0px)', duration: 0.6, ease: 'expo.inOut', transformOrigin: 'top' });
+    try {
+      sfx.transition();
+      await gsap.to(warp, { scaleY: 1, backdropFilter: 'blur(30px)', duration: 0.6, ease: 'expo.inOut', transformOrigin: 'bottom' });
+      render(currentRoutes);
+      window.scrollTo(0, 0);
+      await gsap.to(warp, { scaleY: 0, backdropFilter: 'blur(0px)', duration: 0.6, ease: 'expo.inOut', transformOrigin: 'top' });
+    } catch (e) {
+      console.error("Transition Error:", e);
+      gsap.set(warp, { scaleY: 0, backdropFilter: 'blur(0px)' });
+      render(currentRoutes);
+    }
   } else {
     render(currentRoutes);
   }
@@ -95,16 +101,16 @@ function initScrollAnimations() {
     // Reveal Text
     gsap.utils.toArray('.reveal-text').forEach(el => {
       gsap.to(el, {
-        opacity: 1, y: 0, filter: 'blur(0px)', duration: 1, ease: 'expo.out',
-        scrollTrigger: { trigger: el, start: 'top 90%' }
+        opacity: 1, y: 0, duration: 1, ease: 'expo.out',
+        scrollTrigger: { trigger: el, start: 'top 95%', toggleActions: 'play none none none' }
       });
     });
 
     // Reveal Cards
     gsap.utils.toArray('.reveal-card').forEach((el, i) => {
       gsap.to(el, {
-        opacity: 1, scale: 1, y: 0, filter: 'blur(0px)', duration: 1.2, ease: 'expo.out', delay: i * 0.1,
-        scrollTrigger: { trigger: el, start: 'top 85%' }
+        opacity: 1, y: 0, duration: 1, ease: 'expo.out', delay: i * 0.05,
+        scrollTrigger: { trigger: el, start: 'top 95%', toggleActions: 'play none none none' }
       });
     });
 
@@ -119,6 +125,9 @@ function initScrollAnimations() {
         }
       });
     }
+    
+    // Force refresh to catch elements already in view
+    ScrollTrigger.refresh();
   } catch (e) { console.error("GSAP Error:", e); }
 }
 
