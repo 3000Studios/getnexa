@@ -9,12 +9,13 @@
   --neon-purple: #bc13fe;
   --neon-pink: #ff00e6;
   --neon-gold: #ffb800;
+  --metallic-gold: linear-gradient(90deg, #d4af37 0%, #f7ef8a 50%, #d4af37 100%);
   --glass: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.15);
   --text: #ffffff;
   --text-dim: rgba(255, 255, 255, 0.6);
   --font-heading: 'Playfair Display', serif;
-  --font-body: 'Inter', sans-serif;
+  --font-body: 'Playfair Display', serif; /* Global font */
   --radius-lg: 32px;
   --radius-sm: 12px;
 }
@@ -197,9 +198,22 @@ body {
 .section { position: relative; padding: 160px 0; z-index: 5; }
 .glow-text { color: var(--neon-cyan); text-shadow: 0 0 20px rgba(0, 243, 255, 0.5); }
 
-/* Editorial Text Alignment */
-h1, h2, h3 { text-align: left; }
-p { text-align: left; max-width: 800px; }
+/* Editorial Text Alignment & Shimmering Gold */
+h1, h2, h3 { 
+  text-align: left; 
+  background: var(--metallic-gold);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 4s linear infinite;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+p { text-align: left; max-width: 800px; word-wrap: break-word; }
+
+@keyframes shimmer {
+  to { background-position: 200% center; }
+}
 
 /* ─── Mobile Optimizations ──────────────────────────── */
 @media (max-width: 768px) {

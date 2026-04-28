@@ -1,14 +1,30 @@
 import * as THREE from 'https://unpkg.com/three@0.152.2/build/three.module.js';
 
-let scene, camera, renderer, object;
-let currentPath = '';
+let scene, camera, renderer, controllers = [];
+let scrollY = 0;
 
-const GEOMETRIES = [
-  () => new THREE.TorusKnotGeometry(12, 1.5, 150, 20),
-  () => new THREE.IcosahedronGeometry(15, 0),
-  () => new THREE.SphereGeometry(15, 64, 64),
-  () => new THREE.TorusGeometry(12, 3, 30, 200),
-];
+function createController() {
+  const group = new THREE.Group();
+  
+  // Body
+  const bodyGeo = new THREE.CapsuleGeometry(2, 4, 4, 16);
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.9, roughness: 0.1, transparent: true, opacity: 0.2 });
+  const body = new THREE.Mesh(bodyGeo, mat);
+  body.rotation.z = Math.PI / 2;
+  group.add(body);
+  
+  // Buttons (spheres)
+  const btnGeo = new THREE.SphereGeometry(0.5, 16, 16);
+  const btnMat = new THREE.MeshStandardMaterial({ color: 0x00f3ff, emissive: 0x00f3ff, emissiveIntensity: 2 });
+  
+  for (let i = 0; i < 4; i++) {
+    const btn = new THREE.Mesh(btnGeo, btnMat);
+    btn.position.set(2, 1, (i - 1.5) * 1);
+    group.add(btn);
+  }
+  
+  return group;
+}
 
 export function mountBackground() {
   if (scene) return;
@@ -22,28 +38,47 @@ export function mountBackground() {
   canvas.id = 'bg-3d';
   document.body.prepend(canvas);
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
-  scene.add(ambientLight);
-  
-  const light1 = new THREE.DirectionalLight(0xffffff, 0.8);
-  light1.position.set(10, 20, 10);
-  scene.add(light1);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+  const light = new THREE.DirectionalLight(0xffffff, 1);
+  light.position.set(10, 20, 10);
+  scene.add(light);
 
-  const light2 = new THREE.PointLight(0xd4af37, 1); // Gold light
-  light2.position.set(-20, -20, 20);
-  scene.add(light2);
+  // Create Cluster
+  for (let i = 0; i < 15; i++) {
+    const ctrl = createController();
+    ctrl.position.set(
+      (Math.random() - 0.5) * 100,
+      (Math.random() - 0.5) * 100,
+      (Math.random() - 0.5) * 50 - 20
+    );
+    ctrl.userData = {
+      rotX: Math.random() * 0.01,
+      rotY: Math.random() * 0.01,
+      speed: Math.random() * 0.005 + 0.002
+    };
+    scene.add(ctrl);
+    controllers.push(ctrl);
+  }
 
-  camera.position.z = 45;
+  camera.position.z = 50;
 
   function animate() {
     requestAnimationFrame(animate);
-    if (object) {
-      object.rotation.y += 0.005;
-      object.rotation.x += 0.002;
-    }
+    controllers.forEach(c => {
+      c.rotation.x += c.userData.rotX;
+      c.rotation.y += c.userData.rotY;
+      c.position.y += Math.sin(Date.now() * 0.001 * c.userData.speed) * 0.05;
+      
+      // Parallax scroll
+      c.position.y -= (scrollY * 0.02) * (c.position.z / 50);
+    });
     renderer.render(scene, camera);
   }
   animate();
+
+  window.addEventListener('scroll', () => {
+    scrollY = window.scrollY;
+  });
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -53,28 +88,11 @@ export function mountBackground() {
 }
 
 export function setRoute(path) {
-  if (path === currentPath) return;
-  currentPath = path;
-  
-  if (object) {
-    scene.remove(object);
-    object.geometry.dispose();
-    object.material.dispose();
-  }
-
-  let hash = 0;
-  for (let i = 0; i < path.length; i++) hash = path.charCodeAt(i) + ((hash << 5) - hash);
-  const geoIdx = Math.abs(hash) % GEOMETRIES.length;
-
-  const geometry = GEOMETRIES[geoIdx]();
-  const material = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    metalness: 0.9,
-    roughness: 0.1,
-    transparent: true,
-    opacity: 0.4,
+  // We keep the cluster for all pages but can change light colors
+  const hue = Math.random();
+  scene.children.forEach(c => {
+    if (c instanceof THREE.DirectionalLight) {
+      c.color.setHSL(hue, 0.5, 0.5);
+    }
   });
-
-  object = new THREE.Mesh(geometry, material);
-  scene.add(object);
 }

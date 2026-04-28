@@ -67,15 +67,17 @@ export function GameCard(game) {
 
 export function GamesPage() {
   let query = '';
+  let page = 1;
+  const perPage = 12;
   let publishedOrder = GAMES.map((g) => g.id);
   
   const container = h('div', { class: 'container section' },
     h('div', { style: 'display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 60px; width: 100%;' },
       h('div', {},
-        h('h1', { class: 'reveal-text', style: 'font-size: 80px; margin-bottom: 20px;' }, 'CATALOG'),
-        h('p', { class: 'reveal-text', style: 'color: var(--text-dim);' }, 'Access the full suite of Nexa-verified interactive experiences.')
+        h('h1', { style: 'font-size: 80px; margin-bottom: 20px;' }, 'CATALOG'),
+        h('p', { style: 'color: var(--text-dim);' }, 'Access the full suite of Nexa-verified interactive experiences.')
       ),
-      h('div', { class: 'controls reveal-text', style: 'display:flex; gap: 20px;' },
+      h('div', { style: 'display:flex; gap: 20px;' },
         h('button', { class: 'btn', onClick: playNextSong }, '⏭️'),
         h('button', { class: 'btn', onClick: () => {
           const enabled = toggleSFX();
@@ -83,26 +85,48 @@ export function GamesPage() {
         } }, '🔊')
       )
     ),
-    h('div', { class: 'reveal-text', style: 'margin-bottom: 80px;' },
+    h('div', { style: 'margin-bottom: 80px;' },
       h('input', { 
         placeholder: 'Search archive…', 
         class: 'search', 
         style: 'width: 100%; max-width: 500px; padding: 24px 0; background: transparent; border: none; border-bottom: 1px solid var(--glass-border); color: #fff; font-size: 24px; font-family: inherit; outline: none;', 
-        onInput: (e) => { query = e.target.value.toLowerCase(); update(); } 
+        onInput: (e) => { query = e.target.value.toLowerCase(); page = 1; update(); } 
       })
     ),
-    h('div', { id: 'games-grid', class: 'grid' }, ...GAMES.map(GameCard)),
+    h('div', { id: 'games-grid', class: 'grid' }),
+    h('div', { id: 'pagination', style: 'margin-top: 60px; display: flex; gap: 10px; justify-content: center;' }),
     h('div', { style: 'margin-top: 100px;' }, AdSlot('728x90', 'Transmission'))
   );
 
   function update() {
     const grid = container.querySelector('#games-grid');
-    if (!grid) return;
+    const pag = container.querySelector('#pagination');
+    if (!grid || !pag) return;
+
     grid.innerHTML = '';
+    pag.innerHTML = '';
+
     const orderedIds = [...new Set([...publishedOrder, ...GAMES.map(g => g.id)])];
     const orderedGames = orderedIds.map((id) => findGame(id)).filter(Boolean);
     const filtered = orderedGames.filter(g => !query || g.name.toLowerCase().includes(query) || g.short.toLowerCase().includes(query));
-    filtered.forEach(g => grid.appendChild(GameCard(g)));
+    
+    const totalPages = Math.ceil(filtered.length / perPage);
+    const start = (page - 1) * perPage;
+    const end = start + perPage;
+    const paged = filtered.slice(start, end);
+
+    paged.forEach(g => grid.appendChild(GameCard(g)));
+
+    if (totalPages > 1) {
+      for (let i = 1; i <= totalPages; i++) {
+        pag.appendChild(h('button', { 
+          class: `btn ${page === i ? 'btn-primary' : ''}`, 
+          style: 'padding: 10px 20px; font-size: 14px;',
+          onClick: () => { page = i; update(); window.scrollTo({ top: 0, behavior: 'smooth' }); } 
+        }, i));
+      }
+    }
+
     if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
   }
 
