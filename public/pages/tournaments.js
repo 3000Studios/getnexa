@@ -134,7 +134,7 @@ export function TournamentsPage() {
   return wrap;
 }
 
-function TournamentCard(t, now) {
+export function TournamentCard(t, now) {
   const game = findGame(t.game_id);
   const endsInMs = Math.max(0, t.ends_at - now);
   const totalDuration = 7 * 24 * 60 * 60 * 1000; // Assume 7 days total for progress bar

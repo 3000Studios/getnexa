@@ -46,7 +46,7 @@ export function GameCard(game) {
   });
 
   return h('div', { 
-    class: 'game-card reveal-card',
+    class: 'game-card',
     ref: initTilt,
     onMouseEnter: () => {
       video.play().then(() => video.style.opacity = '0.3');

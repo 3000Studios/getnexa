@@ -31,6 +31,14 @@ export function HomePage() {
       )
     ),
 
+    // Live Tournaments Section
+    h('section', { class: 'section', style: 'background: rgba(188, 19, 254, 0.05);' },
+      h('div', { class: 'container' },
+        h('h2', { class: 'reveal-text', style: 'margin-bottom: 80px;' }, 'Live Arenas'),
+        h('div', { id: 'tournaments-grid', class: 'grid' }, 'SCANNING FOR OPERATIONS...')
+      )
+    ),
+
     // CTA Section
     h('section', { class: 'section', style: 'background: #000;' },
       h('div', { class: 'container' },
@@ -58,7 +66,7 @@ export function HomePage() {
 
         games.forEach((g, i) => {
           const randomVideo = videoList[i % videoList.length];
-          const card = h('div', { class: 'game-card reveal-card', onClick: (e) => {
+          const card = h('div', { class: 'game-card', onClick: (e) => {
             e.currentTarget.classList.add('spin-active');
             setTimeout(() => route(`/games/${g.id}`), 600);
           } },
@@ -70,6 +78,19 @@ export function HomePage() {
             )
           );
           grid.appendChild(card);
+        });
+      }
+
+      // Load Tournaments
+      const tourneyRes = await api('/api/tournaments');
+      const tourneyGrid = container.querySelector('#tournaments-grid');
+      if (tourneyGrid && tourneyRes.tournaments) {
+        tourneyGrid.innerHTML = '';
+        const { TournamentCard } = await import('./tournaments.js');
+        tourneyRes.tournaments.slice(0, 3).forEach((t, i) => {
+          const card = TournamentCard(t, tourneyRes.now);
+          card.classList.add('stagger-in');
+          tourneyGrid.appendChild(card);
         });
       }
 
