@@ -121,6 +121,16 @@ export function GamePage({ params }) {
     h('div', { style: 'display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px;' },
       h('div', {}, h('h1', { style: 'font-size: 48px;' }, `${game.emoji} ${game.name}`)),
       h('div', { style: 'display:flex; gap: 10px;' },
+        h('button', { class: 'btn', onClick: () => {
+          const text = `I just synchronized with the ${game.name} grid on NEXA ARCADE! Can you beat my high score? 🚀🕹️`;
+          const url = window.location.href;
+          if (navigator.share) {
+            navigator.share({ title: 'NEXA ARCADE', text, url });
+          } else {
+            navigator.clipboard.writeText(`${text} ${url}`);
+            toast('Share Link Copied to Clipboard', 'success');
+          }
+        } }, '🔗 Share'),
         h('button', { class: 'btn', onClick: () => { const m = page.querySelector('.pause-overlay'); m.style.display = m.style.display === 'grid' ? 'none' : 'grid'; } }, '⏸️'),
         h('a', { href: '/games', 'data-link': true, class: 'btn' }, 'Exit')
       )

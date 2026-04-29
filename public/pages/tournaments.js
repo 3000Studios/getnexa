@@ -82,10 +82,11 @@ export function TournamentsPage() {
   
   const wrap = h('div', { class: 'container section' },
     canvas,
-    // Global Live Ticker
-    h('div', { class: 'live-ticker' },
-      h('div', { class: 'ticker-content' }, 
-        '🔥 TOURNAMENT UPDATE: User "ShadowWalker" just claimed 1st in Snake! • PRIZE POOL ALERT: 2048 Mega-Bowl just hit $100! • NEW ARENA: "The Neon Grid" is now live for all competitive operations. • '
+    // Global Activity Feed
+    h('div', { class: 'section-head', style: 'margin-bottom: 30px;' },
+      h('div', { class: 'panel', style: 'background: rgba(0,243,255,0.02);' },
+        h('h4', { style: 'font-size: 12px; color: var(--neon-cyan); letter-spacing: 1px; margin-bottom: 10px;' }, '🛰️ GLOBAL ACTIVITY FEED'),
+        h('div', { id: 'global-feed', style: 'height: 60px; overflow: hidden; font-size: 14px; line-height: 20px;' })
       )
     ),
     h('div', { style: 'display:flex; justify-content: space-between; margin-top: 60px;' },
@@ -112,6 +113,22 @@ export function TournamentsPage() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     NeuralBackground(canvas);
+
+    // Activity Feed Logic
+    const feed = wrap.querySelector('#global-feed');
+    const players = ['X-Terminator', 'PixelGhost', 'StarVoyager', 'NeonSamurai', 'CyberWitch'];
+    const actions = ['joined the Starblitz bracket', 'set a personal record in Snake', 'unlocked the "Shadow" skin', 'just initialized a session'];
+    
+    const tick = () => {
+      const msg = h('div', { class: 'win-item', style: 'margin-bottom:5px;' }, 
+        h('span', { style: 'color: var(--neon-cyan);' }, players[Math.floor(Math.random() * players.length)]),
+        ' ' + actions[Math.floor(Math.random() * actions.length)]
+      );
+      feed.prepend(msg);
+      if (feed.children.length > 3) feed.lastChild.remove();
+    };
+    setInterval(tick, 3000);
+    tick();
   });
 
   api('/api/tournaments').then(({ tournaments, now }) => {
