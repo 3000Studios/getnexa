@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@babel/runtime": "^7.22.6",
+    "@babel/runtime": "^7.26.10",
     "@mdi/font": "^7.2.96",
     "@types/cannon": "^0.1.8",
     "cannon": "^0.6.2",
@@ -23,12 +23,12 @@
   },
   "devDependencies": {
     "@types/three-nebula": "^10.0.0",
-    "@vitejs/plugin-vue": "^4.1.0",
+    "@vitejs/plugin-vue": "^6.0.6",
     "@vue/eslint-config-typescript": "^11.0.3",
     "eslint": "^8.44.0",
     "eslint-plugin-vue": "^9.15.1",
     "typescript": "^5.0.2",
-    "vite": "^4.3.9",
+    "vite": "^8.0.10",
     "vue-eslint-parser": "^9.3.1",
     "vue-tsc": "^1.4.2"
   }
