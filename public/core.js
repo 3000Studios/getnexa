@@ -126,6 +126,18 @@ export function render(routes) {
   // Standard Page Metadata
   setSEO();
 
+  // Daily Neural Pulse: Retention Logic
+  const lastPulse = localStorage.getItem('nexa_last_pulse');
+  const today = new Date().toDateString();
+  if (lastPulse !== today) {
+    localStorage.setItem('nexa_last_pulse', today);
+    if (state.user) {
+      api('/api/daily-pulse', { method: 'POST' }).then(res => {
+        if (res.ok) toast(`Daily Pulse Synchronized: +${res.reward} Credits`, 'success');
+      });
+    }
+  }
+
   app.appendChild(Header());
   const main = document.createElement('main');
   if (!match) main.appendChild(NotFound());
@@ -243,6 +255,10 @@ export function toast(message, type = '') {
 }
 
 export function AdSlot(size = '728x90', label = 'Advertisement', slotId = '') {
+  // AD-FREE logic for Operative/Pro/Legend tiers
+  if (state.user && ['operative', 'pro', 'legend', 'studio'].includes(state.user.tier)) {
+    return h('div', { class: 'ad-slot-hidden', style: 'display:none;' });
+  }
   const wrap = h('div', { class: 'ad-slot', 'aria-label': label });
   if (slotId) {
     const ins = document.createElement('ins');

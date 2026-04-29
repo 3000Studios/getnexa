@@ -11,6 +11,18 @@ export function ShopPage() {
       )
     ),
     AdSlot('728x90', 'Sponsored'),
+    h('div', { class: 'operative-promo panel', style: 'border: 1px solid var(--primary); background: linear-gradient(135deg, rgba(0, 243, 255, 0.1), rgba(188, 19, 254, 0.1)); margin-bottom: 24px;' },
+      h('div', { class: 'row', style: 'align-items: center;' },
+        h('div', { style: 'flex: 1;' },
+          h('div', { class: 'section-eyebrow', style: 'color: var(--primary);' }, 'Recommended'),
+          h('h2', { style: 'margin: 5px 0;' }, 'NEXA OPERATIVE'),
+          h('p', { style: 'font-size: 14px;' }, 'Ad-Free Play • Exclusive Epic Skins • 500 Credits/Mo • Priority Support'),
+        ),
+        h('div', {},
+          h('button', { class: 'btn btn-primary', onClick: () => buyStripe('operative_tier') }, 'Sync Now — $4.99/mo')
+        )
+      )
+    ),
     grid,
     h('div', { class: 'panel', style: 'margin-top: 28px;' },
       h('h3', {}, 'Spend your 🪙 coins'),

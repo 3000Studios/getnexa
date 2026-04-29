@@ -57,6 +57,12 @@ export const sfx = {
     gain.connect(ctx.destination);
     osc.start();
     ambientOsc = osc;
+  },
+  hit: () => playTone(150, 'triangle', 0.1, 0.2),
+  unlocked: () => {
+    playTone(523.25, 'sine', 0.1, 0.1); // C5
+    setTimeout(() => playTone(659.25, 'sine', 0.1, 0.1), 100); // E5
+    setTimeout(() => playTone(783.99, 'sine', 0.2, 0.1), 200); // G5
   }
 };
 

@@ -298,6 +298,19 @@ app.get('/api/scores/leaderboard/:gameId', async (c) => {
   return c.json({ leaderboard: rows.results });
 });
 
+async function notifySentinel(env: Bindings, user: any, gameId: string, score: number) {
+  if (!env.DISCORD_WEBHOOK_URL) return;
+  try {
+    await fetch(env.DISCORD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: `🛰️ **NEXA SENTINEL ALERT**: Operative **${user.username}** has synchronized a record-breaking score of **${score.toLocaleString()}** in **${gameId}**! THE GRID IS EVOLVING.`
+      })
+    });
+  } catch {}
+}
+
 async function verifyTurnstile(token: string, secret: string): Promise<boolean> {
   if (!token || !secret) return false;
   const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -336,6 +349,11 @@ app.post('/api/scores', requireAuth, async (c) => {
   await c.env.DB.prepare(
     'INSERT INTO scores (user_id, game_id, score, created_at) VALUES (?, ?, ?, ?)'
   ).bind(user.id, gameId, score, now).run();
+
+  // Nexa Sentinel: Social Proof for High-Intensity Events
+  if (score > 5000) {
+    c.executionCtx.waitUntil(notifySentinel(c.env, user, gameId, score));
+  }
 
   // Progression Logic: 1 XP per 10 points
   const xpGained = Math.floor(score / 10);
@@ -415,6 +433,7 @@ const PRODUCTS = [
   { id: 'coins_medium', name: 'Coin Pack (3,000)', price_cents: 499, type: 'coins', amount: 3000 },
   { id: 'coins_large', name: 'Coin Pack (10,000)', price_cents: 1499, type: 'coins', amount: 10000 },
   { id: 'coins_mega', name: 'Coin Pack (50,000)', price_cents: 4999, type: 'coins', amount: 50000 },
+  { id: 'operative_tier', name: 'NEXA Operative (Monthly)', price_cents: 499, type: 'subscription', recurring: true },
   { id: 'pro_month', name: 'Nexa Pro (Monthly)', price_cents: 499, type: 'subscription', recurring: true },
   { id: 'pro_year', name: 'Nexa Pro (Annual)', price_cents: 4999, type: 'subscription', recurring: false },
   { id: 'legend_month', name: 'Nexa Legend (Monthly)', price_cents: 999, type: 'subscription', recurring: true },
@@ -593,7 +612,7 @@ async function fulfillProduct(env: Bindings, userId: number, productId: string) 
   if (product.type === 'coins' && (product as any).amount) {
     await env.DB.prepare('UPDATE users SET coins = coins + ? WHERE id = ?').bind((product as any).amount, userId).run();
   } else if (product.type === 'subscription') {
-    const tier = productId.startsWith('legend') ? 'legend' : productId.startsWith('studio') ? 'studio' : 'pro';
+    const tier = productId.startsWith('operative') ? 'operative' : productId.startsWith('legend') ? 'legend' : productId.startsWith('studio') ? 'studio' : 'pro';
     await env.DB.prepare('UPDATE users SET tier = ? WHERE id = ?').bind(tier, userId).run();
   }
   await env.DB.prepare(
@@ -682,6 +701,28 @@ app.post('/api/creators/apply', async (c) => {
   return c.json({ ok: true });
 });
 
+app.post('/api/daily-pulse', requireAuth, async (c) => {
+  const user = (c as any).user;
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  
+  // Check if already claimed today in DB
+  const lastClaim = await c.env.DB.prepare('SELECT created_at FROM activity_log WHERE user_id = ? AND type = "daily_pulse" ORDER BY created_at DESC LIMIT 1')
+    .bind(user.id).first<{ created_at: number }>();
+  
+  if (lastClaim) {
+    const lastDate = new Date(lastClaim.created_at).toISOString().split('T')[0];
+    if (lastDate === today) return c.json({ error: 'already_claimed' }, 409);
+  }
+
+  const reward = 100; // Base daily reward
+  await c.env.DB.prepare('UPDATE users SET coins = coins + ? WHERE id = ?').bind(reward, user.id).run();
+  await c.env.DB.prepare('INSERT INTO activity_log (user_id, type, created_at) VALUES (?, "daily_pulse", ?)')
+    .bind(user.id, Date.now()).run();
+
+  return c.json({ ok: true, reward });
+});
+
 // ---------- newsletter ----------
 app.post('/api/newsletter', async (c) => {
   const body = await c.req.json().catch(() => ({}));
@@ -708,12 +749,9 @@ app.get('/api/mp/:gameId/:roomId', async (c) => {
 // ---------- ads.txt ----------
 app.get('/ads.txt', (c) => c.text('google.com, pub-5800977493749262, DIRECT, f08c47fec0942fa0\n', 200, { 'Content-Type': 'text/plain' }));
 app.get('/robots.txt', (c) => c.text(`User-agent: *\nAllow: /\nSitemap: https://getnexa.space/sitemap.xml\n`, 200, { 'Content-Type': 'text/plain' }));
-app.get('/sitemap.xml', (c) => {
-  const base = 'https://getnexa.space';
-  const paths = ['/', '/games', '/tournaments', '/creators', '/about', '/privacy', '/terms', '/contact', '/shop', '/leaderboards',
-    '/games/neondrift', '/games/starblitz', '/games/snake', '/games/tetris', '/games/2048', '/games/memory', '/games/pong', '/games/tictactoe', '/games/breakout', '/games/minesweeper'];
-  const urls = paths.map(p => `<url><loc>${base}${p}</loc><changefreq>weekly</changefreq></url>`).join('');
-  return c.text(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`, 200, { 'Content-Type': 'application/xml' });
+app.get('/sitemap.xml', async (c) => {
+  const xml = await generateSitemap(c.env);
+  return c.text(xml, 200, { 'Content-Type': 'application/xml' });
 });
 
 // ---------- Programmatic SEO / AEO Interceptor ----------
@@ -783,9 +821,36 @@ async function appendHourlySpotlight(env: Bindings): Promise<void> {
   await env.DB.prepare('INSERT INTO hourly_featured (game_id, created_at) VALUES (?, ?)').bind(gameId, now).run();
 }
 
+async function generateSitemap(env: Bindings): Promise<string> {
+  const catalog = await getPublishedCatalog(env);
+  const base = env.SITE_URL;
+  const staticPaths = ['', '/games', '/tournaments', '/creators', '/about', '/privacy', '/terms', '/shop', '/leaderboards'];
+  const gamePaths = catalog.order.map(id => `/games/${id}`);
+  const urls = [...staticPaths, ...gamePaths].map(p => 
+    `<url><loc>${base}${p}</loc><changefreq>weekly</changefreq><priority>${p === '' ? '1.0' : '0.8'}</priority></url>`
+  ).join('');
+  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`;
+}
+
+async function pingSearchEngines(env: Bindings) {
+  const sitemapUrl = encodeURIComponent(`${env.SITE_URL}/sitemap.xml`);
+  try {
+    // Google Ping
+    await fetch(`https://www.google.com/ping?sitemap=${sitemapUrl}`);
+    // Bing Ping
+    await fetch(`https://www.bing.com/ping?sitemap=${sitemapUrl}`);
+  } catch (e) {
+    console.error("Sitemap Ping Error:", e);
+  }
+}
+
 export default {
   fetch: app.fetch,
-  async scheduled(_event: ScheduledEvent, env: Bindings, _ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledEvent, env: Bindings, ctx: ExecutionContext): Promise<void> {
+    // 1. Release new game spotlight
     await appendHourlySpotlight(env);
+    
+    // 2. Ping search engines for fresh indexing
+    ctx.waitUntil(pingSearchEngines(env));
   },
 };

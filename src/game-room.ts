@@ -100,6 +100,22 @@ export class GameRoom {
     if (!player) return;
 
     switch (msg.type) {
+      case 'attack': {
+        if (this.gameId !== 'boss-battle' || !this.gameState) return;
+        const damage = Math.floor(Math.random() * 500) + 100;
+        this.gameState.hp = Math.max(0, this.gameState.hp - damage);
+        this.broadcast({ 
+          type: 'boss_update', 
+          hp: this.gameState.hp, 
+          attacker: player.username, 
+          damage 
+        });
+        if (this.gameState.hp <= 0) {
+          this.broadcast({ type: 'boss_slain', victor: player.username });
+          this.gameState.hp = this.gameState.maxHp; // Instant respawn for now
+        }
+        return;
+      }
       case 'chat': {
         const text = (msg.text || '').toString().slice(0, 200);
         this.broadcast({ type: 'chat', from: player.username, text, ts: Date.now() });
@@ -163,6 +179,14 @@ export class GameRoom {
       this.lastTick = Date.now();
       if (this.tickInterval) clearInterval(this.tickInterval);
       this.tickInterval = setInterval(() => this.tickPong(), 33); // ~30fps authoritative update
+    } else if (this.gameId === 'boss-battle') {
+      this.gameState = {
+        bossName: 'Neural Devourer',
+        hp: 1000000,
+        maxHp: 1000000,
+        lastReward: Date.now()
+      };
+      this.broadcast({ type: 'boss_init', boss: this.gameState });
     } else {
       this.broadcast({ type: 'start', gameId: this.gameId });
     }

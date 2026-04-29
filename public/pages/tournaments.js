@@ -83,13 +83,10 @@ export function TournamentsPage() {
   const wrap = h('div', { class: 'container section' },
     canvas,
     // Global Activity Feed
-    h('div', { class: 'section-head', style: 'margin-bottom: 30px;' },
-      h('div', { class: 'panel', style: 'background: rgba(0,243,255,0.02);' },
-        h('h4', { style: 'font-size: 12px; color: var(--neon-cyan); letter-spacing: 1px; margin-bottom: 10px;' }, '🛰️ GLOBAL ACTIVITY FEED'),
-        h('div', { id: 'global-feed', style: 'height: 60px; overflow: hidden; font-size: 14px; line-height: 20px;' })
-      )
+    h('div', { class: 'boss-battle-section', style: 'margin-bottom: 40px;' },
+      BossBattle()
     ),
-    h('div', { style: 'display:flex; justify-content: space-between; margin-top: 60px;' },
+    h('div', { style: 'display:flex; justify-content: space-between; margin-top: 20px;' },
       h('div', { class: 'section-head' },
         h('div', { class: 'section-eyebrow' }, 'NEURAL GRID ACTIVE'),
         h('h1', {}, 'Competitive Operations'),
