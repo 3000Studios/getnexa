@@ -157,10 +157,25 @@ export function GamesPage() {
     )
   function update() {
     const grid = container.querySelector('#games-grid');
+    const pag = container.querySelector('#pagination');
     const filtered = GAMES.filter(g => !query || g.name.toLowerCase().includes(query) || g.short.toLowerCase().includes(query));
+    
+    // Grid Render
     const start = (page - 1) * perPage;
     grid.innerHTML = '';
     filtered.slice(start, start + perPage).forEach(g => grid.appendChild(GameCard(g)));
+    
+    // Pagination Render
+    pag.innerHTML = '';
+    const totalPages = Math.ceil(filtered.length / perPage);
+    if (totalPages > 1) {
+      for (let i = 1; i <= totalPages; i++) {
+        pag.appendChild(h('button', { 
+          class: `btn btn-sm ${i === page ? 'btn-primary' : ''}`, 
+          onClick: () => { page = i; update(); window.scrollTo(0, 500); }
+        }, i));
+      }
+    }
   }
   update();
   return container;

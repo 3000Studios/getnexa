@@ -181,6 +181,7 @@ export const GAMES = [
   { id: 'beachy-ball', name: 'Beachy Ball', short: 'Beach volleyball fun.', emoji: '🏐', mount: mountExternalGame('beachy-beachy-ball-main'), theme: 0, song: 'energysound-stomp-action-music-513718.mp3' },
   { id: 'hextris', name: 'Hextris', short: 'Hexagonal block puzzle.', emoji: '🛑', mount: mountExternalGame('hextris-gh-pages'), theme: 1, song: 'ikoliks_aj-spring-easter-day-music-320427.mp3' },
   { id: 'overdrive', name: 'Overdrive', short: 'High-speed racing.', emoji: '🏎️', mount: mountExternalGame('overdrive-main'), theme: 2, song: 'kontraa-water-afro-pop-music-445661.mp3' },
+  { id: 'aviator', name: 'The Aviator', short: 'Cinematic flight simulator.', emoji: '🛩️', mount: mountExternalGame('TheAviator-master'), theme: 3, song: 'Voice to Website.mp3' },
 ];
 
 export function findGame(id) { return GAMES.find(g => g.id === id); }
