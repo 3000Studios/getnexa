@@ -26,9 +26,13 @@ export function h(tag, attrs = {}, ...children) {
     else el.setAttribute(k, v);
   }
   
-  // Auto-attach SFX to interactive elements
-  if (tag === 'button' || tag === 'a' || (attrs && (attrs.class || '').includes('btn') || (attrs && (attrs.class || '').includes('game-card')))) {
+  // Auto-attach SFX and Haptics to interactive elements
+  const isInteractive = tag === 'button' || tag === 'a' || (attrs && (attrs.class || '').includes('btn') || (attrs && (attrs.class || '').includes('game-card')));
+  if (isInteractive) {
     attachSfx(el);
+    if (state.isTouch) {
+      el.addEventListener('pointerdown', () => { if (navigator.vibrate) navigator.vibrate(10); });
+    }
   }
 
   for (const child of children.flat(Infinity)) {

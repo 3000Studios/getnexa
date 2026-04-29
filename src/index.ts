@@ -298,12 +298,61 @@ app.get('/api/scores/leaderboard/:gameId', async (c) => {
   return c.json({ leaderboard: rows.results });
 });
 
+async function verifyTurnstile(token: string, secret: string): Promise<boolean> {
+  if (!token || !secret) return false;
+  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(token)}`
+  });
+  const data = await res.json<any>();
+  return !!data.success;
+}
+
 app.get('/api/scores/me/:gameId', requireAuth, async (c) => {
   const user = (c as any).user;
   const gameId = c.req.param('gameId');
   const row = await c.env.DB.prepare('SELECT MAX(score) AS best FROM scores WHERE user_id = ? AND game_id = ?')
     .bind(user.id, gameId).first<any>();
   return c.json({ best: row?.best ?? 0 });
+});
+
+app.post('/api/scores', requireAuth, async (c) => {
+  const user = (c as any).user;
+  const body = await c.req.json().catch(() => ({}));
+  const gameId = body.game_id;
+  const score = parseInt(body.score, 10);
+  const turnstileToken = body.cf_turnstile_response;
+
+  if (!gameId || isNaN(score)) return c.json({ error: 'invalid_data' }, 400);
+
+  // Bot Protection: Turnstile is mandatory for scores > 1000 or any record-breaking attempt
+  if (score > 1000 && c.env.TURNSTILE_SECRET_KEY) {
+    const isHuman = await verifyTurnstile(turnstileToken, c.env.TURNSTILE_SECRET_KEY);
+    if (!isHuman) return c.json({ error: 'bot_detected', message: 'Neural scan failed. Are you human?' }, 403);
+  }
+
+  const now = Date.now();
+  await c.env.DB.prepare(
+    'INSERT INTO scores (user_id, game_id, score, created_at) VALUES (?, ?, ?, ?)'
+  ).bind(user.id, gameId, score, now).run();
+
+  // Progression Logic: 1 XP per 10 points
+  const xpGained = Math.floor(score / 10);
+  if (xpGained > 0) {
+    await c.env.DB.prepare('UPDATE users SET xp = xp + ? WHERE id = ?').bind(xpGained, user.id).run();
+    
+    // Check level up (Level = floor(sqrt(xp/100)) + 1)
+    const updated = await c.env.DB.prepare('SELECT xp, level FROM users WHERE id = ?').bind(user.id).first<any>();
+    const newLevel = Math.floor(Math.sqrt(updated.xp / 100)) + 1;
+    if (newLevel > updated.level) {
+      await c.env.DB.prepare('UPDATE users SET level = ?, coins = coins + ? WHERE id = ?')
+        .bind(newLevel, newLevel * 100, user.id).run();
+      return c.json({ ok: true, xp_gained: xpGained, leveled_up: true, new_level: newLevel });
+    }
+  }
+
+  return c.json({ ok: true, xp_gained: xpGained });
 });
 
 // ---------- activity ----------
@@ -665,6 +714,62 @@ app.get('/sitemap.xml', (c) => {
     '/games/neondrift', '/games/starblitz', '/games/snake', '/games/tetris', '/games/2048', '/games/memory', '/games/pong', '/games/tictactoe', '/games/breakout', '/games/minesweeper'];
   const urls = paths.map(p => `<url><loc>${base}${p}</loc><changefreq>weekly</changefreq></url>`).join('');
   return c.text(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`, 200, { 'Content-Type': 'application/xml' });
+});
+
+// ---------- Programmatic SEO / AEO Interceptor ----------
+app.get('/games/:id', async (c) => {
+  const userAgent = c.req.header('user-agent') || '';
+  const isBot = /bot|googlebot|crawler|spider|robot|crawling|openai|perplexity/i.test(userAgent);
+  const gameId = c.req.param('id');
+  
+  // If not a bot, let the SPA handle it via ASSETS.fetch
+  if (!isBot) return c.env.ASSETS.fetch(c.req.raw);
+
+  // Bot identified: Serve high-density SEO/AEO payload
+  const game = GAME_RELEASE_QUEUE.find(id => id === gameId);
+  if (!game) return c.env.ASSETS.fetch(c.req.raw);
+
+  const title = `${gameId.toUpperCase()} | NEXA ARCADE - Strategy & High Performance`;
+  const desc = `Master the grid in ${gameId}. Zero-latency browser gaming at its peak. Synchronize your neural console now.`;
+  
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>${title}</title>
+      <meta name="description" content="${desc}">
+      <meta property="og:title" content="${title}">
+      <meta property="og:description" content="${desc}">
+      <meta property="og:url" content="${c.env.SITE_URL}/games/${gameId}">
+      <meta property="og:type" content="website">
+      <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "${gameId}",
+        "description": "${desc}",
+        "url": "${c.env.SITE_URL}/games/${gameId}",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Web"
+      }
+      </script>
+    </head>
+    <body>
+      <h1>${title}</h1>
+      <p>${desc}</p>
+      <section>
+        <h2>Nexa Strategy: How to win at ${gameId}</h2>
+        <ul>
+          <li>Focus on high-velocity input synchronization.</li>
+          <li>Monitor the neural grid for cache drops (Loot Boxes).</li>
+          <li>Maintain 60fps focus to minimize reactive latency.</li>
+        </ul>
+      </section>
+      <a href="${c.env.SITE_URL}/games/${gameId}">Play Now</a>
+    </body>
+    </html>
+  `);
 });
 
 // Fallback to static assets (SPA)
