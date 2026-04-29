@@ -355,6 +355,58 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── Mystery Loot Box System ──────────────── */
+.loot-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+  z-index: 200000; display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+.loot-container {
+  background: var(--glass);
+  border: 2px solid var(--neon-cyan);
+  border-radius: var(--radius-lg);
+  padding: 60px;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
+}
+
+.loot-box-visual {
+  font-size: 120px;
+  margin-bottom: 30px;
+  filter: drop-shadow(0 0 20px var(--neon-cyan));
+  animation: float 3s ease-in-out infinite;
+}
+
+.reward-reveal {
+  padding: 20px;
+}
+
+.reward-icon {
+  font-size: 100px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 30px white);
+}
+
+.reward-rarity {
+  display: inline-block;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+  background: var(--neon-gold);
+  color: #000;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
 /* Hall of Fame Mini-Widget */
 .hof-widget { background: var(--glass); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 20px; }
 .hof-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--neon-gold); }

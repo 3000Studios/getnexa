@@ -3,6 +3,48 @@ import { GAMES, findGame } from '../games/index.js';
 import { setAdaptiveTheme } from '../bg-3d.js';
 import { playSpecificSong } from '../music-player.js';
 
+// --- Mystery Loot Box (Behavioral Loop) ---
+function LootBoxModal(onClose) {
+  const rewards = [
+    { id: 'skin_neon', name: 'NEON GHOST SKIN', icon: '👤', rarity: 'RARE' },
+    { id: 'skin_gold', name: 'GOLDEN VANGUARD', icon: '🛡️', rarity: 'EPIC' },
+    { id: 'rank_boost', name: '2X RANK BOOST', icon: '⚡', rarity: 'UNCOMMON' },
+    { id: 'custom_crosshair', name: 'PRECISION CORE', icon: '🎯', rarity: 'RARE' }
+  ];
+
+  const reward = rewards[Math.floor(Math.random() * rewards.length)];
+  const boxRef = { el: null };
+
+  const el = h('div', { class: 'loot-overlay' },
+    h('div', { class: 'loot-container', ref: el => boxRef.el = el },
+      h('div', { class: 'loot-box-visual' }, '🎁'),
+      h('h2', {}, 'NEURAL CACHE DETECTED'),
+      h('p', { style: 'color: var(--text-dim); margin-bottom: 30px;' }, 'Decrypting tactical assets from the void...'),
+      h('button', { class: 'btn btn-primary btn-block', onClick: (e) => {
+        const btn = e.target;
+        btn.disabled = true;
+        btn.textContent = 'DECRYPTING...';
+        
+        // Sequence: Shake -> Flash -> Reveal
+        gsap.to(boxRef.el, { x: 10, repeat: 10, duration: 0.05, yoyo: true });
+        setTimeout(() => {
+          boxRef.el.innerHTML = '';
+          boxRef.el.appendChild(h('div', { class: 'reward-reveal' },
+            h('div', { class: 'reward-icon' }, reward.icon),
+            h('div', { class: 'reward-rarity' }, reward.rarity),
+            h('h3', {}, reward.name),
+            h('p', { style: 'color: var(--neon-cyan); margin-top: 10px;' }, 'ASSET SYNCHRONIZED'),
+            h('button', { class: 'btn btn-block', style: 'margin-top: 20px;', onClick: onClose }, 'Accept & Close')
+          ));
+          gsap.from(boxRef.el.firstChild, { scale: 0.5, opacity: 0, duration: 0.5, ease: 'back.out' });
+        }, 1000);
+      }}, 'INITIATE DECRYPTION')
+    )
+  );
+
+  return el;
+}
+
 // --- Virtual Controls System ---
 function VirtualControls() {
   const dispatch = (key, type) => {
@@ -166,7 +208,16 @@ export function GamePage({ params }) {
 
   queueMicrotask(() => {
     setTimeout(() => { loader.classList.add('fade-out'); setTimeout(() => loader.remove(), 500); }, 2000);
-    game.mount(stageRef.el, { onScore: (s) => console.log(s), user: state.user });
+    game.mount(stageRef.el, { 
+      onScore: (score) => {
+        // Dopamine Loop: 20% chance of Loot Box on any score event > 100
+        if (score > 100 && Math.random() < 0.2) {
+          const loot = LootBoxModal(() => loot.remove());
+          document.body.appendChild(loot);
+        }
+      }, 
+      user: state.user 
+    });
     stageRef.el.focus();
   });
 
