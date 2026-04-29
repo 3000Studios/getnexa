@@ -464,3 +464,100 @@ body {
   .grid { grid-template-columns: 1fr; }
   .section { padding: 80px 0; }
 }
+
+/* ─── Live Arena Aesthetics ──────────────── */
+.arena-hero {
+  background: linear-gradient(135deg, rgba(188, 19, 254, 0.1) 0%, rgba(0, 0, 0, 1) 100%);
+  border: 1px solid rgba(188, 19, 254, 0.3);
+  position: relative;
+  min-height: 500px;
+  border-radius: var(--radius-lg);
+}
+
+.arena-featured-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 500px;
+}
+
+.arena-featured-info {
+  padding: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  z-index: 2;
+}
+
+.arena-visual-feed {
+  position: relative;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-left: 1px solid rgba(255,255,255,0.05);
+}
+
+.scanline {
+  width: 100%;
+  height: 100px;
+  z-index: 3;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(0, 243, 255, 0.1) 50%, rgba(0, 0, 0, 0) 100%);
+  opacity: 0.1;
+  position: absolute;
+  bottom: 100%;
+  animation: scanline 6s linear infinite;
+}
+
+.noise {
+  position: absolute;
+  inset: 0;
+  background: url('https://grainy-gradients.vercel.app/noise.svg');
+  opacity: 0.05;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.operative-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(255, 0, 230, 0.1);
+  border: 1px solid var(--neon-pink);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--neon-pink);
+}
+
+.arena-game-meta {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+}
+
+@keyframes scanline {
+  0% { bottom: 100%; }
+  100% { bottom: -100%; }
+}
+
+.avatar-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--glass);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--neon-cyan);
+}
+
+@media (max-width: 992px) {
+  .arena-featured-grid { grid-template-columns: 1fr; }
+  .arena-visual-feed { display: none; }
+}

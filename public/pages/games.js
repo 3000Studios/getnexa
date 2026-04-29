@@ -243,8 +243,17 @@ export function GamePage({ params }) {
 
   queueMicrotask(() => {
     setTimeout(() => { loader.classList.add('fade-out'); setTimeout(() => loader.remove(), 500); }, 2000);
+    let heartbeatInt = setInterval(() => {
+      if (!state.user) return;
+      // Get current score if the game provides a way, or just ping presence
+      // For now, we'll just ping that we are playing. 
+      // If we had a way to pull 'currentScore' from the game instance, we'd use it.
+      api('/api/arena/heartbeat', { method: 'POST', body: { game_id: game.id, score: state.currentScore || 0 } }).catch(() => {});
+    }, 10000);
+
     game.mount(stageRef.el, { 
       onScore: (score) => {
+        state.currentScore = score;
         // Dopamine Loop: 20% chance of Loot Box on any score event > 100
         if (score > 100 && Math.random() < 0.2) {
           const loot = LootBoxModal(() => loot.remove());
@@ -266,6 +275,10 @@ export function GamePage({ params }) {
       user: state.user 
     });
     stageRef.el.focus();
+
+    // Patch: Ensure heartbeat stops
+    const originalRoute = window.route;
+    window.addEventListener('popstate', () => clearInterval(heartbeatInt), { once: true });
   });
 
   return page;

@@ -788,6 +788,48 @@ app.post('/api/governance/vote', requireAuth, async (c) => {
   return c.json({ ok: true });
 });
 
+// ---------- arena / live presence ----------
+app.post('/api/arena/heartbeat', requireAuth, async (c) => {
+  const user = (c as any).user;
+  const body = await c.req.json().catch(() => ({}));
+  const { game_id, score } = body;
+  if (!game_id) return c.json({ error: 'invalid_data' }, 400);
+
+  const now = Date.now();
+  await c.env.DB.prepare(`
+    INSERT INTO live_presence (user_id, username, game_id, score, last_heartbeat, status)
+    VALUES (?, ?, ?, ?, ?, 'playing')
+    ON CONFLICT(user_id) DO UPDATE SET 
+      game_id = excluded.game_id,
+      score = excluded.score,
+      last_heartbeat = excluded.last_heartbeat,
+      status = 'playing'
+  `).bind(user.id, user.username, game_id, score || 0, now).run();
+
+  return c.json({ ok: true });
+});
+
+app.get('/api/arena/live', async (c) => {
+  const now = Date.now();
+  const staleLimit = now - 30000; // 30 seconds stale
+
+  // Cleanup stale
+  await c.env.DB.prepare('DELETE FROM live_presence WHERE last_heartbeat < ?').bind(staleLimit).run();
+
+  const live = await c.env.DB.prepare(`
+    SELECT lp.*, u.avatar, u.xp, u.level
+    FROM live_presence lp
+    JOIN users u ON lp.user_id = u.id
+    ORDER BY lp.score DESC
+    LIMIT 10
+  `).all<any>();
+
+  return c.json({
+    top_player: live.results[0] || null,
+    live_players: live.results || []
+  });
+});
+
 // ---------- newsletter ----------
 app.post('/api/newsletter', async (c) => {
   const body = await c.req.json().catch(() => ({}));
