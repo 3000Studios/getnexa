@@ -8,6 +8,7 @@ import { LeaderboardsPage } from './pages/leaderboards.js';
 import { StaticPage } from './pages/static.js';
 import { TournamentsPage } from './pages/tournaments.js';
 import { CreatorsPage } from './pages/creators.js';
+import { GovernancePage } from './pages/governance.js';
 
 const routes = [
   { path: '/',                view: HomePage },
@@ -22,6 +23,7 @@ const routes = [
   { path: '/leaderboards/:id',view: LeaderboardsPage },
   { path: '/tournaments',     view: TournamentsPage },
   { path: '/creators',        view: CreatorsPage },
+  { path: '/governance',      view: GovernancePage },
   { path: '/about',           view: () => StaticPage('about') },
   { path: '/privacy',         view: () => StaticPage('privacy') },
   { path: '/terms',           view: () => StaticPage('terms') },

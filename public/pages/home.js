@@ -2,35 +2,37 @@ import { h, api, route, setSEO } from '../core.js';
 import { GAMES } from '../games/index.js';
 
 function LiveCounter() {
-  const el = h('span', { class: 'live-count' }, '1,248');
-  setInterval(() => {
-    const change = Math.floor(Math.random() * 5) - 2;
-    const current = parseInt(el.textContent.replace(/,/g, ''));
-    el.textContent = (current + change).toLocaleString();
-  }, 3000);
+  const el = h('span', { class: 'live-count' }, '...');
+  api('/api/stats/real-time').then(data => {
+    el.textContent = data.users.toLocaleString();
+  }).catch(() => { el.textContent = '0'; });
   return el;
 }
 
 function RecentWins() {
-  const players = ['ShadowX', 'NeonPulse', 'Viper01', 'Glitch_King', 'ZeroCool'];
-  const games = ['Snake', '2048', 'Starblitz', 'Neon Drift'];
   const el = h('div', { class: 'recent-wins' });
   
-  const addWin = () => {
-    const player = players[Math.floor(Math.random() * players.length)];
-    const game = games[Math.floor(Math.random() * games.length)];
-    const win = h('div', { class: 'win-item' }, 
-      h('span', { class: 'win-player' }, player),
-      ' scored ',
-      h('span', { class: 'win-score' }, (Math.floor(Math.random() * 5000) + 1000).toLocaleString()),
-      ` in ${game}`
-    );
-    el.prepend(win);
-    if (el.children.length > 5) el.lastChild.remove();
+  const updateWins = () => {
+    api('/api/stats/real-time').then(data => {
+      el.innerHTML = '';
+      if (!data.activity.length) {
+        el.appendChild(h('div', { class: 'win-item' }, 'Initializing neural grid stats...'));
+        return;
+      }
+      data.activity.forEach(win => {
+        const item = h('div', { class: 'win-item' }, 
+          h('span', { class: 'win-player' }, win.username),
+          ' scored ',
+          h('span', { class: 'win-score' }, win.score.toLocaleString()),
+          ` in ${win.game_id}`
+        );
+        el.appendChild(item);
+      });
+    }).catch(() => {});
   };
 
-  setInterval(addWin, 4000);
-  addWin();
+  setInterval(updateWins, 10000); // Update every 10s for real data
+  updateWins();
   return el;
 }
 

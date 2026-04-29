@@ -723,6 +723,71 @@ app.post('/api/daily-pulse', requireAuth, async (c) => {
   return c.json({ ok: true, reward });
 });
 
+app.get('/api/stats/real-time', async (c) => {
+  const totalUsers = await c.env.DB.prepare('SELECT COUNT(*) AS count FROM users').first<any>();
+  const totalScores = await c.env.DB.prepare('SELECT COUNT(*) AS count FROM scores').first<any>();
+  const recent = await c.env.DB.prepare(`
+    SELECT u.username, s.game_id, s.score, s.created_at 
+    FROM scores s 
+    JOIN users u ON s.user_id = u.id 
+    ORDER BY s.created_at DESC 
+    LIMIT 5
+  `).all();
+  
+  return c.json({
+    users: totalUsers?.count ?? 0,
+    scores: totalScores?.count ?? 0,
+    activity: recent.results || []
+  });
+});
+
+app.get('/api/inventory', requireAuth, async (c) => {
+  const user = (c as any).user;
+  const items = await c.env.DB.prepare('SELECT * FROM inventory WHERE user_id = ?').bind(user.id).all();
+  return c.json({ items: items.results });
+});
+
+app.post('/api/inventory/add', requireAuth, async (c) => {
+  const user = (c as any).user;
+  const body = await c.req.json().catch(() => ({}));
+  const { item_id } = body;
+  if (!item_id) return c.json({ error: 'invalid_data' }, 400);
+
+  await c.env.DB.prepare(`
+    INSERT INTO inventory (user_id, item_id, quantity, acquired_at)
+    VALUES (?, ?, 1, ?)
+    ON CONFLICT(user_id, item_id) DO UPDATE SET quantity = quantity + 1
+  `).bind(user.id, item_id, Date.now()).run();
+
+  return c.json({ ok: true });
+});
+
+app.get('/api/governance', async (c) => {
+  const games = await c.env.DB.prepare(`
+    SELECT ug.*, 
+    (SELECT COUNT(*) FROM governance_votes WHERE game_id = ug.id AND vote_type = 'up') AS upvotes,
+    (SELECT COUNT(*) FROM governance_votes WHERE game_id = ug.id AND vote_type = 'down') AS downvotes
+    FROM upcoming_games ug
+    ORDER BY created_at DESC
+  `).all();
+  return c.json({ proposals: games.results });
+});
+
+app.post('/api/governance/vote', requireAuth, async (c) => {
+  const user = (c as any).user;
+  const body = await c.req.json().catch(() => ({}));
+  const { game_id, type } = body;
+  if (!game_id || !['up', 'down'].includes(type)) return c.json({ error: 'invalid_data' }, 400);
+
+  await c.env.DB.prepare(`
+    INSERT INTO governance_votes (user_id, game_id, vote_type, created_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(user_id, game_id) DO UPDATE SET vote_type = excluded.vote_type, created_at = excluded.created_at
+  `).bind(user.id, game_id, type, Date.now()).run();
+
+  return c.json({ ok: true });
+});
+
 // ---------- newsletter ----------
 app.post('/api/newsletter', async (c) => {
   const body = await c.req.json().catch(() => ({}));

@@ -252,20 +252,51 @@ export function AccountPage() {
       ),
       h('div', { class: 'stack' },
         h('div', { class: 'panel' },
-          h('h2', { style: 'margin-bottom: 10px;' }, 'Elite Status'),
-          h('p', {}, 'Unlock 2x XP multipliers, private grid access, and legendary cosmetics.'),
-          h('a', { href: '/shop', 'data-link': true, class: 'btn btn-accent btn-block' }, 'REQUISITION GEAR →')
+          h('h2', { style: 'margin-bottom: 10px;' }, 'Skin Gallery'),
+          h('p', { style: 'font-size: 14px; color: var(--text-dim); margin-bottom: 15px;' }, 'Personalize your neural presence with decrypted assets.'),
+          h('div', { id: 'skin-gallery', class: 'avatar-presets' }, 'Scanning inventory...')
         ),
         h('div', { class: 'panel' },
           h('h2', { style: 'margin-bottom: 10px;' }, 'Combat Logs'),
-          h('p', {}, 'Historical performance data across the grid.'),
-          h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Ops Completed'), h('span', { class: 'v' }, 'Calculating...')),
-          h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Total Victories'), h('span', { class: 'v' }, '0')),
-          h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Global Standing'), h('span', { class: 'v' }, '#9,999+'))
+          h('p', { style: 'font-size: 14px; color: var(--text-dim); margin-bottom: 15px;' }, 'Historical performance data based on verifiable database entries.'),
+          h('div', { id: 'real-stats' },
+            h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Ops Completed'), h('span', { class: 'v' }, '...')),
+            h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Peak High Score'), h('span', { class: 'v' }, '...')),
+            h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Inventory Size'), h('span', { class: 'v' }, '...'))
+          )
         )
       ),
     )
   );
+
+  queueMicrotask(() => {
+    // Fetch Real Combat Stats
+    api(`/api/users/${user.username}`).then(data => {
+      const stats = wrap.querySelector('#real-stats');
+      const best = data.scores.reduce((max, s) => Math.max(max, s.best), 0);
+      stats.innerHTML = '';
+      stats.appendChild(h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Total Missions'), h('span', { class: 'v' }, data.scores.length.toLocaleString())));
+      stats.appendChild(h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Peak Sync Score'), h('span', { class: 'v' }, best.toLocaleString())));
+      stats.appendChild(h('div', { class: 'stat-row' }, h('span', { class: 'k' }, 'Level Index'), h('span', { class: 'v' }, user.level)));
+    });
+
+    // Fetch Skin Gallery
+    api('/api/inventory').then(data => {
+      const gallery = wrap.querySelector('#skin-gallery');
+      gallery.innerHTML = '';
+      if (!data.items.length) {
+        gallery.appendChild(h('div', { style: 'font-size: 12px; color: var(--text-dim);' }, 'No skins decrypted. Engage Loot Boxes in games.'));
+        return;
+      }
+      data.items.forEach(item => {
+        gallery.appendChild(h('div', { 
+          class: 'avatar-opt', 
+          title: item.item_id,
+          onClick: () => toast(`Skin ${item.item_id} equipped! (Visual logic active)`, 'success')
+        }, '👤')); // Use generic icon for now, map to actual skin icons later
+      });
+    });
+  });
 
   return wrap;
 }

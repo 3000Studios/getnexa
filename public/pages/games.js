@@ -27,6 +27,11 @@ function LootBoxModal(onClose) {
         
         // Sequence: Shake -> Flash -> Reveal
         gsap.to(boxRef.el, { x: 10, repeat: 10, duration: 0.05, yoyo: true });
+        
+        // Synchronize with Neural Grid (Persist to DB)
+        api('/api/inventory/add', { method: 'POST', body: { item_id: reward.id, name: reward.name, rarity: reward.rarity } })
+          .catch(e => console.error("Sync Error:", e));
+
         setTimeout(() => {
           boxRef.el.innerHTML = '';
           boxRef.el.appendChild(h('div', { class: 'reward-reveal' },
@@ -71,7 +76,6 @@ function initTilt(el) {
     const y = (e.clientY - rect.top) / rect.height - 0.5;
     gsap.to(el, { rotateY: x * 15, rotateX: -y * 15, scale: 1.05, duration: 0.5, ease: 'power2.out' });
   });
-  el.addEventListener('mouseleave', () => {
     gsap.to(el, { rotateY: 0, rotateX: 0, scale: 1, duration: 0.5 });
   });
 }
@@ -101,7 +105,7 @@ export function GameCard(game) {
     }
   },
     video,
-    h('div', { class: 'player-count' }, h('span', { class: 'pulse-dot' }), `🔥 ${Math.floor(Math.random()*50)+10} Playing`),
+    h('div', { class: 'player-count' }, h('span', { class: 'pulse-dot' }), `VERIFIED`),
     h('div', { class: 'emoji', style: 'flex-grow: 1; display: flex; align-items: center; justify-content: center; font-size: 80px;' }, game.emoji),
     h('div', { class: 'card-info', style: 'padding: 30px; background: rgba(0,0,0,0.8);' },
       h('h3', { style: 'font-size: 28px; margin-bottom: 8px;' }, game.name),
@@ -110,13 +114,31 @@ export function GameCard(game) {
   );
 }
 
+function GlobalActivityTicker() {
+  const el = h('div', { class: 'activity-ticker' }, h('div', { class: 'container' }, h('div', { class: 'ticker-content' }, 'SYNCHRONIZING WITH NEURAL GRID...')) );
+  const update = () => {
+    api('/api/stats/real-time').then(data => {
+      const ticker = el.querySelector('.ticker-content');
+      if (!data.activity || !data.activity.length) {
+        ticker.textContent = '⚡ NEXA GRID ACTIVE • WAITING FOR NEW MISSION DATA...';
+        return;
+      }
+      const text = data.activity.map(a => `⚡ MISSION: Operative "${a.username}" synchronized a score of ${a.score} in ${a.game_id}`).join(' • ');
+      ticker.textContent = text + ' • ';
+    }).catch(() => {});
+  };
+  setInterval(update, 30000);
+  update();
+  return el;
+}
+
 export function GamesPage() {
   let query = '';
   let page = 1;
   const perPage = 12;
 
   const container = h('div', { class: 'page-games' },
-    h('div', { class: 'activity-ticker' }, h('div', { class: 'container' }, h('div', { class: 'ticker-content' }, '⚡ NEXA ACTIVITY: Agent "ShadowX" just set a record in Snake! • ARENA ALERT: Prize pool for 2048 hit $100! • ')) ),
+    GlobalActivityTicker(),
     h('div', { class: 'container section' },
       h('div', { class: 'trending-hero reveal-text' },
         h('video', { class: 'trending-video', autoplay: true, muted: true, loop: true, src: '/Videos/139010-770938030_medium.mp4' }),
@@ -133,8 +155,6 @@ export function GamesPage() {
       h('div', { id: 'games-grid', class: 'grid' }),
       h('div', { id: 'pagination', style: 'margin-top: 60px; display: flex; gap: 10px; justify-content: center;' })
     )
-  );
-
   function update() {
     const grid = container.querySelector('#games-grid');
     const filtered = GAMES.filter(g => !query || g.name.toLowerCase().includes(query) || g.short.toLowerCase().includes(query));
@@ -215,7 +235,19 @@ export function GamePage({ params }) {
           const loot = LootBoxModal(() => loot.remove());
           document.body.appendChild(loot);
         }
-      }, 
+      },
+      onSave: (data) => {
+        if (!state.user) return;
+        const sync = h('div', { class: 'sync-status' }, 'DEEP-SYNCING...');
+        document.body.appendChild(sync);
+        api(`/api/saves/${game.id}`, { method: 'POST', body: { data } })
+          .then(() => { sync.textContent = 'SYNC SUCCESS'; setTimeout(() => sync.remove(), 1000); })
+          .catch(() => { sync.textContent = 'SYNC ERROR'; setTimeout(() => sync.remove(), 1000); });
+      },
+      onLoad: () => {
+        if (!state.user) return Promise.resolve(null);
+        return api(`/api/saves/${game.id}`).then(res => res.data).catch(() => null);
+      },
       user: state.user 
     });
     stageRef.el.focus();
