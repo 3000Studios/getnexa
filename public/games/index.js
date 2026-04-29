@@ -1,4 +1,4 @@
-// Catalog of games. Each entry declares id, name, description, emoji, and mount function.
+// Collection of games. Each entry declares id, name, description, emoji, and mount function.
 
 import { mountSnake } from './snake.js';
 import { mountTwenty48 } from './twenty48.js';
@@ -176,6 +176,11 @@ export const GAMES = [
   { id: 'whack-a-mole', name: 'Whack-A-Mole', short: 'Hit them as they pop up.', emoji: '🔨', mount: mountExternalGame('35-Whack-A-Mole-Game'), theme: 0, song: 'Wi‑Fi Fridge.mp3' },
   { id: 'simon-says', name: 'Simon Says', short: 'Repeat the pattern.', emoji: '🔵', mount: mountExternalGame('36-Simon-Says-Game'), theme: 1, song: 'alec_koff-carnaval-484622.mp3' },
   { id: 'sliding-puzzle', name: 'Sliding Puzzle', short: 'Rearrange the tiles.', emoji: '🧩', mount: mountExternalGame('37-Sliding-Puzzle-Game'), theme: 2, song: 'alexzavesa-dance-playful-night-510786.mp3' },
+  { id: 'ancient-beast', name: 'Ancient Beast', short: 'Turn-based strategy.', emoji: '🐲', mount: mountExternalGame('AncientBeast-master'), theme: 3, song: 'betty boom boom.mp3' },
+  { id: 'slash-saber', name: 'Slash Saber', short: 'Rhythm slashing action.', emoji: '⚔️', mount: mountExternalGame('SlashSaber-main'), theme: 4, song: 'energysound-powerful-percussion-513717.mp3' },
+  { id: 'beachy-ball', name: 'Beachy Ball', short: 'Beach volleyball fun.', emoji: '🏐', mount: mountExternalGame('beachy-beachy-ball-main'), theme: 0, song: 'energysound-stomp-action-music-513718.mp3' },
+  { id: 'hextris', name: 'Hextris', short: 'Hexagonal block puzzle.', emoji: '🛑', mount: mountExternalGame('hextris-gh-pages'), theme: 1, song: 'ikoliks_aj-spring-easter-day-music-320427.mp3' },
+  { id: 'overdrive', name: 'Overdrive', short: 'High-speed racing.', emoji: '🏎️', mount: mountExternalGame('overdrive-main'), theme: 2, song: 'kontraa-water-afro-pop-music-445661.mp3' },
 ];
 
 export function findGame(id) { return GAMES.find(g => g.id === id); }

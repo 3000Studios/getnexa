@@ -158,7 +158,7 @@ function Header() {
     h('div', { class: 'container nav' },
       h('a', { href: '/', 'data-link': true, class: 'brand' }, 'NEXA'),
       h('nav', { class: 'nav-links' },
-        h('a', { href: '/games', 'data-link': true }, 'Catalog'),
+        h('a', { href: '/games', 'data-link': true }, 'Games'),
         h('a', { href: '/tournaments', 'data-link': true }, 'Arena'),
         h('a', { href: '/leaderboards', 'data-link': true }, 'Legends'),
         h('a', { href: '/creators', 'data-link': true }, 'Studio'),
