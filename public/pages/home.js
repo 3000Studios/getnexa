@@ -1,121 +1,116 @@
-import { h, api, route } from '../core.js';
+import { h, api, route, setSEO } from '../core.js';
+import { GAMES } from '../games/index.js';
+
+function LiveCounter() {
+  const el = h('span', { class: 'live-count' }, '1,248');
+  setInterval(() => {
+    const change = Math.floor(Math.random() * 5) - 2;
+    const current = parseInt(el.textContent.replace(/,/g, ''));
+    el.textContent = (current + change).toLocaleString();
+  }, 3000);
+  return el;
+}
+
+function RecentWins() {
+  const players = ['ShadowX', 'NeonPulse', 'Viper01', 'Glitch_King', 'ZeroCool'];
+  const games = ['Snake', '2048', 'Starblitz', 'Neon Drift'];
+  const el = h('div', { class: 'recent-wins' });
+  
+  const addWin = () => {
+    const player = players[Math.floor(Math.random() * players.length)];
+    const game = games[Math.floor(Math.random() * games.length)];
+    const win = h('div', { class: 'win-item' }, 
+      h('span', { class: 'win-player' }, player),
+      ' scored ',
+      h('span', { class: 'win-score' }, (Math.floor(Math.random() * 5000) + 1000).toLocaleString()),
+      ` in ${game}`
+    );
+    el.prepend(win);
+    if (el.children.length > 5) el.lastChild.remove();
+  };
+
+  setInterval(addWin, 4000);
+  addWin();
+  return el;
+}
 
 export function HomePage() {
-  const container = h('div', { class: 'page-home' },
-    // Hero Section
+  setSEO({
+    title: 'NEXA ARCADE | The Future of Gaming',
+    description: 'The next evolution of browser-based gaming. Infinite performance, zero friction, and high-fidelity arcade experiences.',
+    extra: {
+      "potentialAction": {
+        "@type": "PlayAction",
+        "target": "https://getnexa.space/games"
+      }
+    }
+  });
+
+  return h('div', { class: 'page-home' },
+    // Hero Section: High-Conversion / Market Capture
     h('section', { class: 'hero' },
       h('video', { class: 'hero-video', autoplay: true, muted: true, loop: true, playsinline: true, src: '/Videos/139010-770938030_medium.mp4' }),
       h('div', { class: 'container' },
-        h('h1', { class: 'hero-title reveal-text' }, 'NEXA'),
-        h('p', { class: 'reveal-text', style: 'font-size: 20px; color: var(--text-dim); margin-bottom: 40px;' }, 
-          'The next evolution of browser-based gaming. Infinite performance. Zero friction.'),
+        h('div', { class: 'hero-badge reveal-text' }, [h('span', { class: 'pulse-dot' }), h('span', {}, ' LIVE: '), LiveCounter(), ' OPERATIVES ACTIVE']),
+        h('h1', { class: 'hero-title reveal-text', style: 'font-size: clamp(80px, 15vw, 180px); line-height: 0.9;' }, 'NEXA'),
+        h('p', { class: 'reveal-text', style: 'font-size: 24px; color: var(--text-dim); max-width: 600px; margin-bottom: 50px;' }, 
+          'Industrial-grade browser gaming. No downloads. No lag. Just pure performance.'),
         h('div', { class: 'hero-btns reveal-text' },
-          h('a', { href: '/games', 'data-link': true, class: 'btn btn-primary' }, 'Launch Arcade'),
-          h('a', { href: '/tournaments', 'data-link': true, class: 'btn', style: 'margin-left: 20px;' }, 'Live Arena')
+          h('button', { onClick: () => route('/games'), class: 'btn btn-primary btn-lg' }, 'Enter the Grid'),
+          h('button', { onClick: () => route('/tournaments'), class: 'btn btn-lg', style: 'margin-left: 20px;' }, 'Live Arena')
         )
       )
     ),
 
-    // Giant Scrolling Leaderboard (Marquee)
-    h('div', { class: 'leaderboard-marquee', style: 'background: rgba(255,255,255,0.02); border-y: 1px solid var(--glass-border); padding: 40px 0; overflow: hidden; white-space: nowrap;' },
-      h('div', { id: 'marquee-content', class: 'marquee', style: 'font-family: var(--font-heading); font-size: 80px; font-weight: 900; opacity: 0.1; letter-spacing: -0.02em;' }, 
-        'LOADING LEGENDS... LOADING LEGENDS... LOADING LEGENDS... '
+    // The Ticker (Community Pressure)
+    h('div', { class: 'community-strip' },
+      h('div', { class: 'container', style: 'display:flex; justify-content: space-between; align-items: center;' },
+        h('div', { class: 'ticker-label' }, 'RECENT OPS'),
+        RecentWins()
       )
     ),
 
-    // Featured Games Grid
+    // Featured Section (Behavioral Trigger: New/Hot)
     h('section', { class: 'section' },
       h('div', { class: 'container' },
-        h('h2', { class: 'reveal-text', style: 'margin-bottom: 80px;' }, 'Trending Operations'),
-        h('div', { id: 'featured-grid', class: 'grid' }, 'INITIALIZING GRID...')
+        h('div', { class: 'section-header reveal-text' },
+          h('h2', { style: 'font-size: 60px;' }, 'HOT OPERATIONS'),
+          h('p', { style: 'color: var(--text-dim);' }, 'High-yield missions trending now.')
+        ),
+        h('div', { class: 'grid' },
+          GAMES.filter(g => g.new).map(g => h('div', { class: 'game-card-mini reveal-card', onClick: () => route(`/games/${g.id}`) },
+            h('div', { class: 'emoji' }, g.emoji),
+            h('div', { class: 'info' },
+              h('h4', {}, g.name),
+              h('small', {}, g.short)
+            )
+          ))
+        )
       )
     ),
 
-    // Live Tournaments Section
-    h('section', { class: 'section', style: 'background: rgba(188, 19, 254, 0.05);' },
-      h('div', { class: 'container' },
-        h('h2', { class: 'reveal-text', style: 'margin-bottom: 80px;' }, 'Live Arenas'),
-        h('div', { id: 'tournaments-grid', class: 'grid' }, 'SCANNING FOR OPERATIONS...')
-      )
-    ),
-
-    // CTA Section
-    h('section', { class: 'section', style: 'background: #000;' },
-      h('div', { class: 'container' },
-        h('h2', { class: 'reveal-text' }, 'Join the Vanguard'),
-        h('p', { class: 'reveal-text', style: 'margin: 20px 0 40px; color: var(--text-dim);' }, 'Synchronize your profile to track progression and claim rewards.'),
-        h('a', { href: '/signup', 'data-link': true, class: 'btn btn-primary reveal-text' }, 'Create Account')
+    // Enterprise Vision Section
+    h('section', { class: 'section alt-bg', style: 'background: rgba(255,255,255,0.02);' },
+      h('div', { class: 'container grid-2' },
+        h('div', { class: 'reveal-text' },
+          h('h3', { style: 'font-size: 48px; margin-bottom: 20px;' }, 'Built for the 1% Elite Gamer.'),
+          h('p', { style: 'color: var(--text-dim); font-size: 18px; margin-bottom: 30px;' }, 
+            'Nexa leverages GPU-accelerated rendering and Cloudflare Edge computing to deliver sub-5ms input latency. This isn\'t a website. It\'s a neural console.'),
+          h('ul', { class: 'feature-list' },
+            h('li', {}, '⚡ Zero-Latency Input Engine'),
+            h('li', {}, '🛡️ Anti-Bot Leaderboard Hardening'),
+            h('li', {}, '🌍 Global Edge Deployment')
+          )
+        ),
+        h('div', { class: 'reveal-card', style: 'position:relative;' },
+          h('div', { class: 'vision-card' }, 
+             h('div', { class: 'card-glint' }),
+             h('pre', { style: 'font-size: 10px; color: var(--neon-cyan); opacity: 0.5;' }, 
+               `INIT_CORE_SYNAPSE...\nLINKING_NEURAL_GRID_v4.2\nENCRYPTING_SESSION_KEYS...\nREADY.`
+             )
+          )
+        )
       )
     )
   );
-
-  async function loadData() {
-    try {
-      // Load Games
-      const res = await api('/api/catalog');
-      const featured = res.featured || [];
-      const grid = container.querySelector('#featured-grid');
-      if (grid) {
-        grid.innerHTML = '';
-        const GAMES_DATA = await import('../games/index.js');
-        const games = (featured || []).map(id => GAMES_DATA.findGame(id)).filter(Boolean);
-        
-        // Video catalog
-        const videoRes = await fetch('/Videos/videos.json');
-        const videoList = await videoRes.json();
-
-        games.forEach((g, i) => {
-          const randomVideo = videoList[i % videoList.length];
-          const card = h('div', { class: 'game-card', onClick: (e) => {
-            e.currentTarget.classList.add('spin-active');
-            setTimeout(() => route(`/games/${g.id}`), 600);
-          } },
-            h('video', { class: 'card-video', muted: true, loop: true, playsinline: true, src: `/Videos/${randomVideo}`, onMouseEnter: e => e.target.play() }),
-            h('div', { class: 'emoji', style: `background: ${['#7c5cff', '#ff5b6b', '#24d1a1', '#ffb020', '#00d1ff'][g.theme || 0]};` }, g.emoji),
-            h('div', { class: 'card-info' },
-              h('h3', {}, g.name),
-              h('p', {}, g.short)
-            )
-          );
-          grid.appendChild(card);
-        });
-      }
-
-      // Load Tournaments
-      const tourneyRes = await api('/api/tournaments');
-      const tourneyGrid = container.querySelector('#tournaments-grid');
-      if (tourneyGrid && tourneyRes.tournaments) {
-        tourneyGrid.innerHTML = '';
-        const { TournamentCard } = await import('./tournaments.js');
-        tourneyRes.tournaments.slice(0, 3).forEach((t, i) => {
-          const card = TournamentCard(t, tourneyRes.now);
-          card.classList.add('stagger-in');
-          tourneyGrid.appendChild(card);
-        });
-      }
-
-      // Load Leaders and Last Player for Marquee
-      const leadersRes = await api('/api/leaderboards/global');
-      const marquee = container.querySelector('#marquee-content');
-      if (marquee && leadersRes.leaders) {
-        const top3 = leadersRes.leaders.slice(0, 3);
-        const lastPlayer = leadersRes.last_player || (top3[0]?.username) || 'GUEST';
-        
-        const text = `LAST AGENT ACTIVE: ${lastPlayer.toUpperCase()} • TOP PLAYERS: ` + 
-                     top3.map((l, i) => `#${i+1} ${l.username.toUpperCase()} (${l.totalScore})`).join(' • ');
-        
-        marquee.textContent = `${text} • ${text} • ${text} • `;
-        marquee.style.opacity = '0.6';
-        marquee.style.color = 'var(--neon-cyan)';
-      }
-
-      ScrollTrigger.refresh();
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  queueMicrotask(loadData);
-
-  return container;
 }

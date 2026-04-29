@@ -81,6 +81,35 @@ function matchRoute(routes, pathname) {
   return null;
 }
 
+export function setSEO(data = {}) {
+  const title = data.title ? `${data.title} | NEXA ARCADE` : 'NEXA ARCADE | The Future of Gaming';
+  const desc = data.description || 'Experience the next evolution of browser gaming. High-performance, zero-friction, premium arcade console in your browser.';
+  document.title = title;
+  document.querySelector('meta[name="description"]')?.setAttribute('content', desc);
+  
+  // Inject JSON-LD for AEO (Answer Engine Optimization)
+  let script = document.getElementById('aeo-ld');
+  if (!script) {
+    script = document.createElement('script');
+    script.id = 'aeo-ld';
+    script.type = 'application/ld+json';
+    document.head.appendChild(script);
+  }
+  
+  const ld = {
+    "@context": "https://schema.org",
+    "@type": data.type || "WebApplication",
+    "name": title,
+    "description": desc,
+    "url": window.location.href,
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Web",
+    "author": { "@type": "Organization", "name": "NEXA Studios" },
+    ...data.extra
+  };
+  script.textContent = JSON.stringify(ld);
+}
+
 export function render(routes) {
   currentRoutes = routes;
   const app = document.getElementById('app');
@@ -90,14 +119,19 @@ export function render(routes) {
 
   try { mountBackground(); setBgRoute(url.pathname); } catch {}
 
+  // Standard Page Metadata
+  setSEO();
+
   app.appendChild(Header());
   const main = document.createElement('main');
   if (!match) main.appendChild(NotFound());
-  else main.appendChild(match.route.view({ params: match.params, query: url.searchParams }));
+  else {
+    const view = match.route.view({ params: match.params, query: url.searchParams });
+    main.appendChild(view);
+  }
   app.appendChild(main);
   app.appendChild(Footer());
   
-  // Initialize Scroll Animations
   initScrollAnimations();
   wireLinks(app);
 }

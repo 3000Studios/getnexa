@@ -265,6 +265,96 @@ body {
 .ticker-content { display: inline-block; animation: ticker 30s linear infinite; }
 @keyframes ticker { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
 
+/* ─── Enterprise UI Components ──────────────── */
+.community-strip {
+  background: rgba(0, 243, 255, 0.05);
+  border-top: 1px solid rgba(0, 243, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+  padding: 15px 0;
+  overflow: hidden;
+}
+
+.ticker-label {
+  font-family: var(--font-heading);
+  color: var(--neon-cyan);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 2px;
+  padding-right: 40px;
+  border-right: 1px solid rgba(255,255,255,0.1);
+}
+
+.recent-wins {
+  display: flex;
+  gap: 30px;
+  flex-grow: 1;
+  padding-left: 40px;
+  height: 20px;
+  overflow: hidden;
+}
+
+.win-item {
+  font-size: 14px;
+  white-space: nowrap;
+  animation: slideInUp 0.5s ease-out;
+}
+
+.win-player { color: var(--neon-cyan); font-weight: bold; }
+.win-score { color: var(--neon-gold); font-weight: bold; }
+
+.game-card-mini {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--glass-border);
+  padding: 20px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.game-card-mini:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--neon-cyan);
+  transform: translateX(5px);
+}
+
+.game-card-mini .emoji { font-size: 32px; }
+.game-card-mini h4 { margin: 0; font-size: 18px; }
+.game-card-mini small { color: var(--text-dim); }
+
+.vision-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%);
+  border: 1px solid var(--glass-border);
+  padding: 40px;
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(20px);
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.card-glint {
+  position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.1) 45%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 55%, transparent 60%);
+  animation: glint 5s infinite;
+}
+
+.feature-list { list-style: none; padding: 0; }
+.feature-list li { margin-bottom: 15px; color: var(--text-dim); }
+
+@keyframes glint {
+  0% { transform: translateX(-100%) rotate(25deg); }
+  20%, 100% { transform: translateX(200%) rotate(25deg); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Hall of Fame Mini-Widget */
 .hof-widget { background: var(--glass); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 20px; }
 .hof-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--neon-gold); }
