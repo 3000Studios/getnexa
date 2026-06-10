@@ -11,3 +11,14 @@ dist/
 # Local-only R2 media mirror (served from CDN, not the worker bundle)
 public/shared-media
 public/shared-media/
+
+.env
+.env.*
+!.env.example
+*.local
+serviceAccount*.json
+firebase-service-account*.json
+.google-credentials*.json
+.gitleaks-report.json
+.trivy-report.json
+.semgrep/

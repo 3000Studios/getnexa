@@ -1,0 +1,8 @@
+{
+  "App": "getnexa-space",
+  "Domain": "getnexa.space",
+  "Repo": "getnexa",
+  "Type": "Cloudflare Worker",
+  "Gap": "Latest Worker build failed; needs build and payload routing audit",
+  "Niche": "AI/tech landing and backend worker"
+}

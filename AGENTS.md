@@ -1,15 +1,19 @@
-# AGENTS.md — 3000Studios Project Rules
+# AGENTS.md
 
-- Start by reading package.json, framework config, Firebase config, Cloudflare config, and env examples.
-- Default deployment target is Cloudflare Pages unless repo says otherwise.
-- Use Cloudflare Workers or Pages Functions for lightweight APIs.
-- Use Firebase Auth, Firestore, Storage, Functions, and App Check where useful.
-- Check C:\Users\Servi\.config\env\global.env for required variable names only.
-- Never print, expose, commit, or invent secrets.
-- Do not rename env variables unless every reference is updated and documented.
-- Every site must be AdSense-review-ready when applicable.
-- Maintain robots.txt, sitemap.xml, ads.txt, _headers, and _redirects where applicable.
-- Run lint, typecheck, build, tests, gitleaks, trivy, and semgrep when available.
-- Fix real spelling issues. Whitelist valid technical/project/domain words in cspell.json.
-- Keep UI mobile-first, accessible, fast, high-contrast, and production-ready.
-- Final report must include files changed, commands run, issues fixed, and manual blockers.
+Repo: getnexa
+Domains: getnexa.space
+Firebase apps: getnexa-space
+Deployment target: Cloudflare
+
+Rules:
+- Do not expose secrets.
+- Do not print values from C:\Users\Servi\.config\env\global.env.
+- Never commit .env files, API keys, tokens, cookies, private keys, service accounts, or billing data.
+- Cloudflare is the public deployment platform.
+- Firebase is used for Auth/Firestore only where useful.
+- Firebase Storage is unavailable on Spark/no-cost; use static assets or approved Cloudflare fallback.
+- Do not deploy without approval.
+- Do not change DNS without approval.
+- Do not enable billing.
+- Do not publish Firebase rules without review.
+- Keep code SEO-ready, AdSense-review-ready, mobile-first, and fast.
