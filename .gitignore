@@ -22,3 +22,15 @@ firebase-service-account*.json
 .gitleaks-report.json
 .trivy-report.json
 .semgrep/
+
+# 3000Studios managed secret protection
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+serviceAccount*.json
+firebase-service-account*.json
+global.env

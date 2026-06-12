@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isOwner(userId) { return signedIn() && request.auth.uid == userId; }
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function validString(value, min, max) {
+      return value is string && value.size() >= min && value.size() <= max;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    match /apps/{appId}/settings/public {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /apps/{appId}/settings/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /apps/{appId}/users/{userId} {
+      allow read, create, update, delete: if isOwner(userId);
+    }
+
+    match /apps/{appId}/blogPosts/{postId} {
+      allow read: if resource.data.published == true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /apps/{appId}/seoPages/{pageId} {
+      allow read: if resource.data.published == true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /apps/{appId}/publicGallery/{siteId} {
+      allow read: if resource.data.published == true;
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /apps/{appId}/generatedSites/{siteId} {
+      allow read, update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    match /apps/{appId}/projects/{projectId} {
+      allow read, update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    match /apps/{appId}/leads/{leadId} {
+      allow create: if
+        validString(request.resource.data.email, 5, 254) &&
+        validString(request.resource.data.source, 1, 120) &&
+        request.resource.data.createdAt == request.time;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /apps/{appId}/contactSubmissions/{submissionId} {
+      allow create: if
+        validString(request.resource.data.email, 5, 254) &&
+        validString(request.resource.data.message, 1, 5000) &&
+        request.resource.data.createdAt == request.time;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /apps/voicetowebsite-web/chatRooms/{roomId} {
+      allow read, create: if signedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    match /apps/voicetowebsite-web/chatMessages/{messageId} {
+      allow read: if signedIn();
+      allow create: if signedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        validString(request.resource.data.text, 1, 2000);
+      allow update, delete: if isAdmin();
+    }
+
+    match /apps/{appId}/analyticsEvents/{eventId} {
+      allow create: if signedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        validString(request.resource.data.eventName, 1, 120) &&
+        request.resource.data.createdAt == request.time;
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}

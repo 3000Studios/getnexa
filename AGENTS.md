@@ -1,19 +1,20 @@
 # AGENTS.md
 
-Repo: getnexa
-Domains: getnexa.space
-Firebase apps: getnexa-space
-Deployment target: Cloudflare
+## Project
+- App ID: getnexa-space
+- Domain: getnexa.space
+- Public deployment: Cloudflare Pages/Workers only unless separately approved.
+- Firebase role: Auth and Firestore backend support.
+- Storage: Firebase Storage disabled on Spark/no-cost.
 
-Rules:
-- Do not expose secrets.
-- Do not print values from C:\Users\Servi\.config\env\global.env.
-- Never commit .env files, API keys, tokens, cookies, private keys, service accounts, or billing data.
-- Cloudflare is the public deployment platform.
-- Firebase is used for Auth/Firestore only where useful.
-- Firebase Storage is unavailable on Spark/no-cost; use static assets or approved Cloudflare fallback.
-- Do not deploy without approval.
-- Do not change DNS without approval.
-- Do not enable billing.
-- Do not publish Firebase rules without review.
-- Keep code SEO-ready, AdSense-review-ready, mobile-first, and fast.
+## Rules
+- Never expose secrets.
+- Never commit .env files.
+- Never hard-code Firebase config.
+- Never enable billing.
+- Never deploy production without explicit approval.
+- Never publish Firebase rules without explicit approval.
+- Never change DNS without explicit approval.
+- Never cache admin/auth/API/payment/private routes.
+- Public marketing/blog/gallery/pricing pages must be crawlable and indexable.
+- Admin/dashboard/auth/API/private routes must be noindex and no-store.
