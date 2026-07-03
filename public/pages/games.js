@@ -31,54 +31,281 @@ function getVideos() {
   return fetch('/Videos/videos.json').then(r => r.json()).then(v => { _videosCache = v; return v; }).catch(() => []);
 }
 
-/* ── 3-D Carousel for one group of games ── */
-function GameCarousel(games, label, emoji) {
-  const qty = Math.min(games.length, 10);
-  const inner = h('div', { class: 'carousel-inner', style: `--quantity:${qty}` });
+const GAME_PREVIEW_VIDEOS = {
+  neondrift: '5165-183709910_medium.mp4',
+  starblitz: '98615-649311005_medium.mp4',
+  'flappy-bird': '91560-629172423_medium.mp4',
+  tetris: '43245-435970515_medium.mp4',
+  snake: '27775-365891076_medium.mp4',
+  '2048': '141675-778335011_medium.mp4',
+  chess: '37585-414024825_medium.mp4',
+  wordle: '48354-453189085_medium.mp4',
+};
 
-  games.slice(0, qty).forEach((game, i) => {
-    const color = RING_COLORS[i % RING_COLORS.length];
-    const video = document.createElement('video');
-    video.className = 'carousel-card-video';
-    video.muted = true; video.loop = true; video.playsInline = true;
-    getVideos().then(v => { if (v.length) video.src = '/Videos/' + v[i % v.length]; });
+const QUICK_PLAY_IDS = [
+  'reaction-test', 'tap-tiles', 'balloon-pop', 'whack-a-mole', 'shape-clicker',
+  'fruit-slicer', 'emoji-catcher', 'pong', 'ping-pong', 'rps', 'dice-roll',
+];
+const HIGH_SCORE_IDS = [
+  '2048', 'tetris', 'snake', 'flappy-bird', 'neondrift', 'starblitz', 'breakout',
+  'hextris', 'doodle-jump', 'crossy-road', 'pacman', 'tower-blocks',
+];
 
-    const card = h('div', {
-      class: 'carousel-card',
-      style: `--index:${i};--color-card:${color}`,
-      role: 'button', tabIndex: 0,
-      'aria-label': 'Play ' + game.name,
-      onClick: () => route('/games/' + game.id),
-      onKeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); route('/games/' + game.id); } }
-    },
-      video,
-      game.new  && h('div', { class: 'carousel-card-badge-new' }, 'NEW'),
-      game.multiplayer && h('div', { class: 'carousel-card-badge-mp' }, '2P'),
-      h('div', { class: 'carousel-card-emoji' }, game.emoji),
-      h('div', { class: 'carousel-card-name' }, game.name)
-    );
+function videoIndexForGame(game) {
+  if (!game?.id) return 0;
+  return Math.abs(game.id.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0));
+}
 
-    card.addEventListener('mouseenter', () => {
-      inner.classList.add('hover-paused');
-      video.play().catch(() => {});
-      if (game.song) playSpecificSong(game.song);
-      if (game.theme !== undefined) setAdaptiveTheme([0x7c5cff,0xff5b6b,0x24d1a1,0xffb020,0x00d1ff][game.theme] || 0x00f3ff);
+function attachPreviewVideo(videoEl, game) {
+  getVideos().then((videos) => {
+    if (!videoEl) return;
+    const mapped = game?.id && GAME_PREVIEW_VIDEOS[game.id];
+    const file = mapped || (videos.length ? videos[videoIndexForGame(game) % videos.length] : null);
+    if (!file) return;
+    videoEl.src = '/Videos/' + file;
+    videoEl.addEventListener('loadeddata', () => { videoEl.play().catch(() => {}); }, { once: true });
+  });
+}
+
+const QUICK_TAGS = [
+  { key: 'all', label: 'All', type: 'category' },
+  { key: 'quickplay', label: 'Quick Play', type: 'filter', match: (g) => QUICK_PLAY_IDS.includes(g.id) },
+  { key: 'highscore', label: 'High Score', type: 'filter', match: (g) => HIGH_SCORE_IDS.includes(g.id) },
+  { key: 'multiplayer', label: 'Multiplayer', type: 'category' },
+  { key: 'new', label: 'New', type: 'category' },
+  { key: 'puzzle', label: 'Puzzle', type: 'category' },
+  { key: 'action', label: 'Action', type: 'category' },
+];
+
+const _lbCache = {};
+function fetchTopScore(gameId) {
+  if (_lbCache[gameId] !== undefined) return Promise.resolve(_lbCache[gameId]);
+  return api('/api/scores/leaderboard/' + gameId).then((data) => {
+    const top = data.leaderboard?.[0]?.score ?? null;
+    _lbCache[gameId] = top;
+    return top;
+  }).catch(() => null);
+}
+
+function bindLeaderboardHover(card, game) {
+  let scoreEl = null;
+  const show = () => {
+    if (!scoreEl) {
+      scoreEl = h('div', { class: 'carousel-card-top-score' }, 'LOADING TOP SCORE…');
+      card.appendChild(scoreEl);
+    }
+    fetchTopScore(game.id).then((top) => {
+      if (!scoreEl) return;
+      scoreEl.textContent = top != null
+        ? '🏆 TOP SCORE: ' + Number(top).toLocaleString()
+        : '🏆 BE FIRST ON THE BOARD';
     });
-    card.addEventListener('mouseleave', () => {
-      inner.classList.remove('hover-paused');
-      video.pause();
-      setAdaptiveTheme(0x00f3ff);
-    });
+  };
+  card.addEventListener('mouseenter', show);
+  card.addEventListener('focus', show);
+}
 
-    inner.appendChild(card);
+function initInfiniteCarousel(track) {
+  if (!track || track.dataset.loopInit || track.scrollWidth <= track.clientWidth + 40) return;
+  const originals = [...track.querySelectorAll('.carousel-card:not([data-clone])')];
+  if (originals.length < 4) return;
+
+  const gap = parseFloat(getComputedStyle(track).gap) || 16;
+  const bindClone = (clone, source) => {
+    clone.dataset.clone = '1';
+    clone.setAttribute('aria-hidden', 'true');
+    const srcId = source.dataset.gameId;
+    if (srcId) {
+      clone.dataset.gameId = srcId;
+      clone.addEventListener('click', () => route('/games/' + srcId));
+    }
+  };
+
+  originals.slice(-3).reverse().forEach((card) => {
+    const clone = card.cloneNode(true);
+    bindClone(clone, card);
+    track.insertBefore(clone, track.firstChild);
+  });
+  originals.slice(0, 3).forEach((card) => {
+    const clone = card.cloneNode(true);
+    bindClone(clone, card);
+    track.appendChild(clone);
   });
 
-  return h('div', { class: 'carousel-section' },
+  track.dataset.loopInit = '1';
+  const stride = () => originals[0].offsetWidth + gap;
+  const jump = () => {
+    const s = stride();
+    track.scrollLeft = s * 3;
+  };
+  requestAnimationFrame(jump);
+
+  let autoPaused = false;
+  let dragging = false;
+  let pointerStartX = 0;
+  let scrollStart = 0;
+  let lastTick = performance.now();
+  const stopAuto = () => { autoPaused = true; };
+  const resumeAuto = () => { autoPaused = false; lastTick = performance.now(); };
+
+  track.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    pointerStartX = e.clientX;
+    scrollStart = track.scrollLeft;
+    track.setPointerCapture?.(e.pointerId);
+    stopAuto();
+  });
+  track.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - pointerStartX;
+    track.scrollLeft = scrollStart - dx * 1.8;
+  });
+  track.addEventListener('pointerup', () => { dragging = false; resumeAuto(); });
+  track.addEventListener('pointercancel', () => { dragging = false; resumeAuto(); });
+  track.addEventListener('mouseenter', stopAuto);
+  track.addEventListener('mouseleave', resumeAuto);
+
+  let ticking = false;
+  track.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      ticking = false;
+      const s = stride();
+      const max = track.scrollWidth - track.clientWidth;
+      if (track.scrollLeft <= s * 0.5) track.scrollLeft += s * originals.length;
+      else if (track.scrollLeft >= max - s * 0.5) track.scrollLeft -= s * originals.length;
+    });
+  }, { passive: true });
+
+  const autoStep = (now) => {
+    if (!dragging && !autoPaused) {
+      const elapsed = Math.min(32, now - lastTick || 16);
+      lastTick = now;
+      track.scrollLeft += Math.max(0.3, elapsed * 0.018);
+    } else {
+      lastTick = now;
+    }
+    requestAnimationFrame(autoStep);
+  };
+  requestAnimationFrame(autoStep);
+
+}
+
+function bindCarouselCard(card, game, video) {
+  card.addEventListener('mouseenter', () => {
+    video.play().catch(() => {});
+    if (game.song) playSpecificSong(game.song);
+    if (game.theme !== undefined) setAdaptiveTheme([0x7c5cff, 0xff5b6b, 0x24d1a1, 0xffb020, 0x00d1ff][game.theme] || 0x00f3ff);
+  });
+  card.addEventListener('mouseleave', () => {
+    video.pause();
+    setAdaptiveTheme(0x00f3ff);
+  });
+  card.addEventListener('focus', () => video.play().catch(() => {}));
+}
+
+function createCarouselCard(game, i, opts = {}) {
+  const hero = !!opts.hero;
+  const color = RING_COLORS[i % RING_COLORS.length];
+  const video = document.createElement('video');
+  video.className = 'carousel-card-video';
+  video.muted = true;
+  video.loop = true;
+  video.playsInline = true;
+  video.setAttribute('preload', 'metadata');
+  attachPreviewVideo(video, game);
+
+  const card = h('div', {
+    class: 'carousel-card' + (hero ? ' carousel-card-hero' : ''),
+    style: `--color-card:${color}`,
+    role: 'button',
+    tabIndex: 0,
+    'data-game-id': game.id,
+    'data-game-name': game.name.toLowerCase(),
+    'data-game-short': (game.short || '').toLowerCase(),
+    'aria-label': 'Play ' + game.name,
+    onClick: () => route('/games/' + game.id),
+    onKeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); route('/games/' + game.id); } }
+  },
+    video,
+    h('div', { class: 'carousel-card-shade' }),
+    game.new && h('div', { class: 'carousel-card-badge-new' }, 'NEW'),
+    game.multiplayer && h('div', { class: 'carousel-card-badge-mp' }, '2P'),
+    h('div', { class: 'carousel-card-body' },
+      h('div', { class: 'carousel-card-emoji' }, game.emoji),
+      h('div', { class: 'carousel-card-name' }, game.name),
+      h('div', { class: 'carousel-card-short' }, game.short || '')
+    )
+  );
+
+  bindCarouselCard(card, game, video);
+  bindLeaderboardHover(card, game);
+  return card;
+}
+
+function observeCarouselVideos(root) {
+  if (!root || typeof IntersectionObserver === 'undefined') return;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const video = entry.target.querySelector('.carousel-card-video');
+      if (!video) return;
+      if (entry.isIntersecting && entry.intersectionRatio > 0.35) video.play().catch(() => {});
+      else video.pause();
+    });
+  }, { threshold: [0, 0.35, 0.6] });
+  root.querySelectorAll('.carousel-card:not([data-clone])').forEach((card) => io.observe(card));
+}
+
+function wireCarousels(root) {
+  if (!root) return;
+  root.querySelectorAll('.carousel-inner').forEach((track) => {
+    observeCarouselVideos(track);
+    initInfiniteCarousel(track);
+  });
+}
+
+function fillToEight(games, fallbackPool = []) {
+  const seen = new Set();
+  const out = [];
+  const push = (game) => {
+    if (!game || seen.has(game.id)) return;
+    seen.add(game.id);
+    out.push(game);
+  };
+  games.forEach(push);
+  fallbackPool.forEach(push);
+  GAMES.forEach(push);
+  return out.slice(0, Math.max(8, out.length));
+}
+
+/* ── Hero featured row ── */
+function HeroCarousel(games) {
+  const track = h('div', { class: 'carousel-inner carousel-inner-hero', 'aria-label': 'Featured games' });
+  fillToEight(games).forEach((game, i) => track.appendChild(createCarouselCard(game, i, { hero: true })));
+  queueMicrotask(() => wireCarousels(track.parentElement?.parentElement || track));
+  return h('section', { class: 'archive-hero', id: 'carousel-featured' },
+    h('div', { class: 'archive-hero-copy' },
+      h('p', { class: 'eyebrow' }, 'Swipe & Discover'),
+      h('h2', { class: 'archive-hero-title text-3d' }, '⚡ Featured Releases'),
+      h('p', { class: 'archive-hero-sub' }, 'Swipe left or right — each card plays a live video preview. Tap to jump in.')
+    ),
+    h('div', { class: 'carousel-wrapper carousel-wrapper-hero' }, track)
+  );
+}
+
+/* ── Horizontal touch carousel per category ── */
+function GameCarousel(games, label, emoji, catKey) {
+  const track = h('div', { class: 'carousel-inner', 'aria-label': label + ' games' });
+  fillToEight(games).forEach((game, i) => track.appendChild(createCarouselCard(game, i)));
+  queueMicrotask(() => wireCarousels(track.parentElement?.parentElement || track));
+
+  return h('div', { class: 'carousel-section', id: 'carousel-' + catKey, 'data-cat': catKey },
     h('div', { class: 'carousel-section-hdr' },
       h('span', {}, emoji + '  ' + label),
-      h('em', {}, games.length + ' games')
+      h('em', {}, Math.max(8, games.length) + ' games · swipe →')
     ),
-    h('div', { class: 'carousel-wrapper' }, inner)
+    h('div', { class: 'carousel-wrapper' }, track)
   );
 }
 
@@ -93,7 +320,7 @@ export function GameCard(game, index = 0) {
   const [c1, c2, glow] = GAME_COLORS[index % GAME_COLORS.length];
   const video = document.createElement('video');
   video.className = 'game-card-video'; video.muted = true; video.loop = true; video.playsInline = true;
-  getVideos().then(v => { if (v.length) video.src = '/Videos/' + v[index % v.length]; });
+  attachPreviewVideo(video, game);
 
   const badge = game.new  ? h('div', { class: 'game-card-badge new' }, 'NEW')
     : game.multiplayer    ? h('div', { class: 'game-card-badge mp' }, '2P')
@@ -112,12 +339,17 @@ export function GameCard(game, index = 0) {
     h('div', { class: 'game-card-art' }, game.emoji),
     h('div', { class: 'game-card-info' }, h('h3', {}, game.name), h('p', {}, game.short))
   );
+  const lbEl = h('div', { class: 'game-card-lb' }, '');
+  card.querySelector('.game-card-info')?.appendChild(lbEl);
   card.addEventListener('mouseenter', () => {
     video.play().catch(() => {});
     if (game.theme !== undefined) setAdaptiveTheme([0x7c5cff,0xff5b6b,0x24d1a1,0xffb020,0x00d1ff][game.theme] || 0x00f3ff);
     if (game.song) playSpecificSong(game.song);
+    fetchTopScore(game.id).then((top) => {
+      lbEl.textContent = top != null ? '🏆 Top: ' + Number(top).toLocaleString() : '🏆 Be first!';
+    });
   });
-  card.addEventListener('mouseleave', () => { video.pause(); setAdaptiveTheme(0x00f3ff); });
+  card.addEventListener('mouseleave', () => { video.pause(); setAdaptiveTheme(0x00f3ff); lbEl.textContent = ''; });
   return card;
 }
 
@@ -145,11 +377,14 @@ export function GamesPage({ query }) {
   /* ------ search grid ------ */
   const searchGrid = h('div', { class: 'games-grid-search' });
 
-  function updateSearchGrid(q) {
+  function matchGameQuery(g, q) {
+    const hay = (g.name + ' ' + g.short + ' ' + g.id).toLowerCase();
+    return hay.includes(q);
+  }
+
+  function updateSearchGrid(q, games = null) {
     searchGrid.innerHTML = '';
-    const filtered = GAMES.filter(g =>
-      g.name.toLowerCase().includes(q) || g.short.toLowerCase().includes(q)
-    );
+    const filtered = games || GAMES.filter((g) => matchGameQuery(g, q));
     filtered.forEach((g, i) => searchGrid.appendChild(GameCard(g, i)));
     // GSAP animate if available
     if (typeof gsap !== 'undefined') {
@@ -186,61 +421,122 @@ export function GamesPage({ query }) {
                games: CATEGORIES[cat]?.ids ? GAMES.filter(g => CATEGORIES[cat].ids.includes(g.id)) : GAMES }];
 
     groups.filter(g => g.games.length > 0).forEach(g => {
-      // Build multiple carousels if group has >10 games
-      const chunks = [];
-      for (let i = 0; i < g.games.length; i += 10) chunks.push(g.games.slice(i, i + 10));
-      chunks.forEach((chunk, ci) => {
-        const label = chunks.length > 1 ? g.label + ' — Vol.' + (ci + 1) : g.label;
-        stack.appendChild(GameCarousel(chunk, label, g.emoji));
-      });
+      stack.appendChild(GameCarousel(g.games, g.label, g.emoji, g.key));
     });
     return stack;
   }
 
+  const featuredGames = GAMES.filter(g => g.new).concat(
+    GAMES.filter(g => !g.new && ['neondrift', 'starblitz', 'flappy-bird', 'tetris', 'chess', 'wordle'].includes(g.id))
+  ).filter((g, i, arr) => arr.findIndex(x => x.id === g.id) === i).slice(0, 8);
+
   /* ------ page scaffold ------ */
-  const carouselWrap = h('div', {});
+  const carouselWrap = h('div', { class: 'archive-carousels' });
+  if (currentCat === 'all' && !searchQ) carouselWrap.appendChild(HeroCarousel(featuredGames));
   carouselWrap.appendChild(buildCarousels(currentCat));
 
-  const pageWrap = h('div', { class: 'no-search' });
+  const pageWrap = h('div', { class: 'archive-page no-search' });
 
-  const countEl = h('span', { style: 'color:var(--text-muted);font-size:13px;font-family:var(--font-display);' }, GAMES.length + ' GAMES');
+  const countEl = h('span', { class: 'archive-count' }, GAMES.length + ' games');
+
+  function setSearchMode(q, games = null) {
+    searchQ = q;
+    if (q || games) {
+      pageWrap.classList.add('search-active');
+      pageWrap.classList.remove('no-search');
+      updateSearchGrid(q, games);
+      const n = games ? games.length : GAMES.filter((g) => matchGameQuery(g, q)).length;
+      countEl.textContent = n + ' match' + (n === 1 ? '' : 'es');
+    } else {
+      pageWrap.classList.remove('search-active');
+      pageWrap.classList.add('no-search');
+      countEl.textContent = GAMES.length + ' games';
+    }
+  }
+
+  function setCategory(key, btn) {
+    pills.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+    tagRow.querySelectorAll('.quick-tag').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    currentCat = key;
+    searchInput.value = '';
+    setSearchMode('');
+    carouselWrap.innerHTML = '';
+    if (key === 'all') carouselWrap.appendChild(HeroCarousel(featuredGames));
+    carouselWrap.appendChild(buildCarousels(key));
+    queueMicrotask(() => wireCarousels(carouselWrap));
+  }
+
+  function scrollToCategory(key) {
+    const el = pageWrap.querySelector('#carousel-' + key) || pageWrap.querySelector('[data-cat="' + key + '"]');
+    if (!el) return false;
+    const top = el.getBoundingClientRect().top + window.scrollY - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 74) - 56;
+    window.scrollTo({ top, behavior: 'smooth' });
+    pills.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+    const pill = pills.querySelector('[data-cat="' + key + '"]');
+    if (pill) pill.classList.add('active');
+    return true;
+  }
+
+  function applyQuickTag(tag, btn) {
+    searchInput.value = '';
+    pills.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+    tagRow.querySelectorAll('.quick-tag').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    if (tag.type === 'filter' && tag.match) {
+      currentCat = 'all';
+      const matched = GAMES.filter(tag.match);
+      setSearchMode('', matched);
+      return;
+    }
+    if (tag.key === 'all') {
+      setCategory('all', pills.querySelector('[data-cat="all"]'));
+      return;
+    }
+    setCategory(tag.key, pills.querySelector('[data-cat="' + tag.key + '"]'));
+  }
 
   const searchInput = h('input', {
-    type: 'search', class: 'search', placeholder: 'Search games...',
+    type: 'search',
+    class: 'search archive-search',
+    placeholder: 'Search ' + GAMES.length + '+ games instantly…',
     value: searchQ,
+    'aria-label': 'Search games',
     onInput: (e) => {
       const q = e.target.value.toLowerCase().trim();
-      searchQ = q;
       if (q) {
-        pageWrap.classList.add('search-active');
-        pageWrap.classList.remove('no-search');
-        updateSearchGrid(q);
-        countEl.textContent = GAMES.filter(g => g.name.toLowerCase().includes(q) || g.short.toLowerCase().includes(q)).length + ' GAMES';
-      } else {
-        pageWrap.classList.remove('search-active');
-        pageWrap.classList.add('no-search');
-        countEl.textContent = GAMES.length + ' GAMES';
+        tagRow.querySelectorAll('.quick-tag').forEach(t => t.classList.remove('active'));
+        pills.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
       }
+      setSearchMode(q);
     }
   });
 
-  const pills = h('div', { class: 'cat-pills' },
+  const pills = h('div', { class: 'cat-pills', role: 'tablist', 'aria-label': 'Game categories' },
     ...Object.entries(CATEGORIES).map(([key, cat]) =>
       h('button', {
-        class: 'cat-pill' + (currentCat === key ? ' active' : ''),
+        type: 'button',
+        class: 'cat-pill' + (currentCat === key && !searchQ ? ' active' : ''),
+        'data-cat': key,
+        role: 'tab',
+        'aria-selected': currentCat === key && !searchQ ? 'true' : 'false',
         onClick: (e) => {
-          pills.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
-          e.target.classList.add('active');
-          currentCat = key;
-          searchInput.value = '';
-          searchQ = '';
-          pageWrap.classList.remove('search-active');
-          pageWrap.classList.add('no-search');
-          countEl.textContent = GAMES.length + ' GAMES';
-          carouselWrap.innerHTML = '';
-          carouselWrap.appendChild(buildCarousels(key));
+          tagRow.querySelectorAll('.quick-tag').forEach(t => t.classList.remove('active'));
+          if (key !== 'all' && currentCat === 'all' && !searchQ && scrollToCategory(key)) return;
+          setCategory(key, e.currentTarget);
         }
       }, cat.emoji + ' ' + cat.label)
+    )
+  );
+
+  const tagRow = h('div', { class: 'quick-tags', role: 'group', 'aria-label': 'Quick filters' },
+    ...QUICK_TAGS.map((tag) =>
+      h('button', {
+        type: 'button',
+        class: 'quick-tag' + (currentCat === tag.key && !searchQ ? ' active' : ''),
+        onClick: (e) => applyQuickTag(tag, e.currentTarget)
+      }, tag.label)
     )
   );
 
@@ -251,21 +547,25 @@ export function GamesPage({ query }) {
   }
 
   pageWrap.appendChild(GlobalActivityTicker());
-  pageWrap.appendChild(h('div', { class: 'container section' },
-    h('div', { class: 'section-head-row' },
-      h('div', {},
+  pageWrap.appendChild(h('div', { class: 'container section archive-section' },
+    h('header', { class: 'archive-header' },
+      h('div', { class: 'archive-header-copy' },
         h('div', { class: 'eyebrow' }, 'The Archive'),
-        h('h1', { style: 'font-family:var(--font-display);font-size:clamp(28px,5vw,52px);font-weight:800;letter-spacing:-.02em;margin-bottom:8px;' }, 'All Games'),
+        h('h1', { class: 'archive-title text-3d' }, 'Game Vault'),
         countEl
       ),
-      h('div', { class: 'search-wrap' }, searchInput)
+      h('div', { class: 'archive-search-block' },
+        h('div', { class: 'search-wrap' }, searchInput),
+        tagRow
+      )
     ),
-    pills,
+    h('div', { class: 'archive-nav-sticky' }, pills),
     AdSlot('inContent'),
-    h('div', { style: 'margin-top:24px;' }, carouselWrap),
+    carouselWrap,
     searchGrid
   ));
 
+  queueMicrotask(() => wireCarousels(carouselWrap));
   return pageWrap;
 }
 
@@ -323,17 +623,68 @@ function makeKeyEvent(type, key) {
   return ev;
 }
 
-export function dispatchGameKey(key, type) {
+export function dispatchGameKey(key, type, stageEl) {
   window.dispatchEvent(makeKeyEvent(type, key));
   document.dispatchEvent(makeKeyEvent(type, key));
-  const ifr = document.querySelector('.game-stage iframe');
+  const ifr = stageEl?.querySelector('iframe') || document.querySelector('.game-stage iframe');
   if (ifr && ifr.contentWindow) {
     try {
+      ifr.contentWindow.postMessage({ type: 'nexa-key', key, eventType: type }, '*');
       ifr.contentWindow.dispatchEvent(makeKeyEvent(type, key));
       const doc = ifr.contentDocument;
       if (doc) (doc.activeElement || doc.body || doc).dispatchEvent(makeKeyEvent(type, key));
     } catch {}
   }
+}
+
+function getFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function requestGameFullscreen(el) {
+  if (!el) return Promise.reject();
+  const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+  return req ? Promise.resolve(req.call(el)) : Promise.reject();
+}
+
+function exitGameFullscreen() {
+  const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+  return exit ? Promise.resolve(exit.call(document)) : Promise.reject();
+}
+
+function initGameFullscreen(shellEl, buttons) {
+  const btns = (buttons || []).filter(Boolean);
+  if (!shellEl || !btns.length) return;
+  const notifyIframeResize = () => {
+    const ifr = shellEl.querySelector('iframe');
+    if (!ifr?.contentWindow) return;
+    try { ifr.contentWindow.postMessage({ type: 'nexa-resize' }, '*'); } catch {}
+  };
+  const sync = () => {
+    const on = getFullscreenElement() === shellEl;
+    btns.forEach((btn) => {
+      btn.classList.toggle('is-fullscreen', on);
+      btn.setAttribute('aria-label', on ? 'Exit fullscreen' : 'Enter fullscreen');
+      btn.setAttribute('title', on ? 'Exit fullscreen' : 'Fullscreen');
+      btn.textContent = on ? 'Exit Fullscreen' : 'Fullscreen';
+    });
+    shellEl.classList.toggle('is-fullscreen', on);
+    shellEl.querySelector('.game-stage')?.focus();
+    requestAnimationFrame(() => {
+      notifyIframeResize();
+      setTimeout(notifyIframeResize, 120);
+    });
+  };
+  const toggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (getFullscreenElement() === shellEl) exitGameFullscreen().catch(() => {});
+    else requestGameFullscreen(shellEl).catch(() => toast('Fullscreen not supported on this device', 'error'));
+  };
+  btns.forEach((btn) => btn.addEventListener('click', toggle));
+  document.addEventListener('fullscreenchange', sync);
+  document.addEventListener('webkitfullscreenchange', sync);
+  sync();
 }
 
 function VirtualControls() {
@@ -367,6 +718,26 @@ export function GamePage({ params }) {
   }
 
   const stageRef = {};
+  const shellRef = {};
+  const fsBtnRef = {};
+  const optionsBtnRef = {};
+  const optionsPanelRef = {};
+  const uiPrefs = {
+    fullUi: localStorage.getItem('nexa_full_ui') !== '0',
+    sound: localStorage.getItem('nexa_game_sound') !== '0',
+    controls: localStorage.getItem('nexa_game_controls') || 'auto',
+  };
+  const syncUiPrefs = () => {
+    if (!page) return;
+    page.classList.toggle('game-compact', !uiPrefs.fullUi);
+    localStorage.setItem('nexa_full_ui', uiPrefs.fullUi ? '1' : '0');
+    localStorage.setItem('nexa_game_sound', uiPrefs.sound ? '1' : '0');
+    localStorage.setItem('nexa_game_controls', uiPrefs.controls);
+    if (!uiPrefs.sound) {
+      const iframe = shellRef.el?.querySelector('iframe');
+      try { iframe?.contentWindow?.postMessage({ type: 'nexa-mute', muted: true }, '*'); } catch {}
+    }
+  };
   const loader = h('div', { class: 'game-loader-overlay' },
     h('div', { class: 'loader-name' }, (state.user?.username || 'ANONYMOUS').toUpperCase()),
     h('div', { class: 'loader-ready' }, 'LOADING ' + game.name.toUpperCase() + '...'),
@@ -416,31 +787,62 @@ export function GamePage({ params }) {
             else { navigator.clipboard.writeText(text + ' ' + location.href); toast('Link copied!', 'success'); }
           }
         }, '🔗 Share'),
+        h('button', { class: 'btn btn-sm game-settings-btn', ref: (el) => optionsBtnRef.el = el, 'aria-label': 'Game options', title: 'Game options' }, '⚙ Options'),
+        h('button', { class: 'btn btn-sm game-fs-btn', ref: (el) => fsBtnRef.header = el, 'aria-label': 'Enter fullscreen', title: 'Fullscreen' }, 'Fullscreen'),
         h('button', { class: 'btn btn-sm', onClick: () => { pauseOverlay.style.display = pauseOverlay.style.display === 'flex' ? 'none' : 'flex'; } }, '⏸'),
         h('a', { href: '/games', 'data-link': true, class: 'btn btn-sm' }, '✕ Exit')
       )
     ),
 
     h('div', { class: 'game-wrap' },
-      h('div', { class: 'game-stage', ref: (el) => stageRef.el = el, tabIndex: 0, 'aria-label': game.name + ' game area' }),
+      h('div', { class: 'game-stage-shell', ref: (el) => shellRef.el = el },
+        h('button', { class: 'game-fs-overlay-btn', ref: (el) => fsBtnRef.overlay = el, 'aria-label': 'Enter fullscreen', title: 'Fullscreen' }, 'Fullscreen'),
+        h('button', {
+          class: 'game-fs-overlay-btn game-options-float',
+          ref: (el) => optionsBtnRef.overlay = el,
+          'aria-label': 'Game options',
+          title: 'Game options'
+        }, '⚙'),
+        h('div', { class: 'game-stage', ref: (el) => stageRef.el = el, tabIndex: 0, 'aria-label': game.name + ' game area' })
+      ),
       h('div', {},
         lbPanel,
         h('div', { class: 'panel' },
           h('h3', {}, 'Controls'),
           h('div', { style: 'margin-top:4px;' },
             h('label', { class: 'v-option', style: 'margin-bottom:8px;' },
-              h('input', { type: 'radio', name: 'ctrl', checked: !state.forceVirtual,
-                onChange: () => { state.forceVirtual = false; route(location.pathname, false); }
-              }), ' Auto-Detect'
+              h('input', { type: 'radio', name: 'ctrl', checked: uiPrefs.controls === 'auto',
+                onChange: () => { uiPrefs.controls = 'auto'; state.forceVirtual = false; syncUiPrefs(); route(location.pathname, false); }
+              }), ' AI Auto-Detect'
             ),
             h('label', { class: 'v-option', style: 'margin-bottom:8px;' },
-              h('input', { type: 'radio', name: 'ctrl', checked: state.forceVirtual,
-                onChange: () => { state.forceVirtual = true; route(location.pathname, false); }
-              }), ' Virtual D-Pad'
+              h('input', { type: 'radio', name: 'ctrl', checked: uiPrefs.controls === 'touch',
+                onChange: () => { uiPrefs.controls = 'touch'; state.forceVirtual = true; syncUiPrefs(); route(location.pathname, false); }
+              }), ' Swipe / Tap Controls'
+            ),
+            h('label', { class: 'v-option', style: 'margin-bottom:8px;' },
+              h('input', { type: 'radio', name: 'ctrl', checked: uiPrefs.controls === 'keyboard',
+                onChange: () => { uiPrefs.controls = 'keyboard'; state.forceVirtual = false; syncUiPrefs(); route(location.pathname, false); }
+              }), ' Keyboard + Mouse'
             ),
             h('div', { style: 'font-size:11px;color:var(--cyan);margin-top:8px;font-family:var(--font-display);letter-spacing:.1em;' },
-              state.hasGamepad ? '✅ GAMEPAD LINKED' : '⌨️ KEYBOARD ACTIVE'
+              state.hasGamepad ? '✅ GAMEPAD LINKED' : '⌨️ DEVICE READY'
             )
+          )
+        ),
+        h('div', { class: 'panel', ref: (el) => optionsPanelRef.el = el, style: 'display:none;' },
+          h('h3', {}, 'Game Options'),
+          h('label', { class: 'v-option', style: 'margin-bottom:8px;' },
+            h('input', { type: 'checkbox', checked: uiPrefs.fullUi, onChange: (e) => { uiPrefs.fullUi = e.target.checked; syncUiPrefs(); } }),
+            ' Enable Full Game UI'
+          ),
+          h('label', { class: 'v-option', style: 'margin-bottom:8px;' },
+            h('input', { type: 'checkbox', checked: uiPrefs.sound, onChange: (e) => { uiPrefs.sound = e.target.checked; syncUiPrefs(); } }),
+            ' Sound'
+          ),
+          h('label', { class: 'v-option', style: 'margin-bottom:8px;' },
+            h('input', { type: 'checkbox', checked: state.forceVirtual, onChange: (e) => { state.forceVirtual = e.target.checked; syncUiPrefs(); route(location.pathname, false); } }),
+            ' Force Touch Controls'
           )
         ),
         state.user && h('div', { class: 'panel' },
@@ -463,18 +865,27 @@ export function GamePage({ params }) {
   }
 
   queueMicrotask(() => {
+    syncUiPrefs();
+    initGameFullscreen(shellRef.el, [fsBtnRef.header, fsBtnRef.overlay]);
+    const toggleOptions = () => {
+      const on = optionsPanelRef.el.style.display === 'block';
+      optionsPanelRef.el.style.display = on ? 'none' : 'block';
+    };
+    optionsBtnRef.el?.addEventListener('click', toggleOptions);
+    optionsBtnRef.overlay?.addEventListener('click', toggleOptions);
     trackEvent('game_start', { game_id: game.id, game_name: game.name });
     setTimeout(() => { loader.classList.add('fade-out'); setTimeout(() => loader.remove(), 600); }, 1800);
 
     let heartbeatInt = setInterval(() => {
       if (!state.user) return;
       api('/api/arena/heartbeat', { method: 'POST', body: { game_id: game.id, score: state.currentScore || 0 } }).catch(() => {});
-    }, 10000);
+    }, 5000);
 
     // Stop arrow keys / space from scrolling the page while playing.
     // Self-detaches once the game stage leaves the DOM (SPA nav uses pushState,
     // so popstate alone is not reliable here).
     const SCROLL_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'PageUp', 'PageDown'];
+    const FORWARD_KEYS = [' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
     const blockScroll = (e) => {
       if (!document.body.contains(stageRef.el)) {
         window.removeEventListener('keydown', blockScroll);
@@ -483,13 +894,39 @@ export function GamePage({ params }) {
       }
       const tag = (e.target && e.target.tagName) || '';
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (SCROLL_KEYS.includes(e.key)) e.preventDefault();
+      if (!SCROLL_KEYS.includes(e.key)) return;
+      e.preventDefault();
+      if (stageRef.el?.querySelector('iframe') && FORWARD_KEYS.includes(e.key)) {
+        dispatchGameKey(e.key, 'keydown', stageRef.el);
+      }
     };
     window.addEventListener('keydown', blockScroll, { passive: false });
+    stageRef.el?.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (!FORWARD_KEYS.includes(e.key)) return;
+      e.preventDefault();
+      dispatchGameKey(e.key, 'keydown', stageRef.el);
+    });
     window.addEventListener('popstate', () => {
       clearInterval(heartbeatInt);
       window.removeEventListener('keydown', blockScroll);
     }, { once: true });
+
+    const onGameMessage = (e) => {
+      if (!document.body.contains(stageRef.el)) {
+        window.removeEventListener('message', onGameMessage);
+        return;
+      }
+      if (!e.data || e.data.type !== 'nexa-score') return;
+      if (e.data.gameId !== game.id) return;
+      const score = Number(e.data.score) || 0;
+      state.currentScore = score;
+      if (state.user) {
+        api('/api/scores', { method: 'POST', body: { game_id: game.id, score } }).catch(() => {});
+      }
+    };
+    window.addEventListener('message', onGameMessage);
 
     game.mount(stageRef.el, {
       onScore: (score) => {

@@ -180,6 +180,7 @@ function buildHeader(currentPath) {
     h('span'), h('span'), h('span')
   );
   const mobileNav = h('nav', { class: 'mobile-nav', 'aria-label': 'Mobile navigation' },
+    h('div', { class: 'mobile-nav-brand' }, 'NEXA'),
     h('a', { href: '/games', 'data-link': true }, 'Games'),
     h('a', { href: '/arena', 'data-link': true }, 'Arena'),
     h('a', { href: '/tournaments', 'data-link': true }, 'Tournaments'),
@@ -224,7 +225,10 @@ function buildHeader(currentPath) {
       h('div', { class: 'nav-right' },
         user
           ? h('a', { href: '/account', 'data-link': true, class: 'btn btn-sm' }, user.username)
-          : h('a', { href: '/signup', 'data-link': true, class: 'btn btn-sm btn-primary' }, 'Join Free'),
+          : h('div', { class: 'nav-auth-actions' },
+              h('a', { href: '/login', 'data-link': true, class: 'btn btn-sm btn-ghost' }, 'Sign In'),
+              h('a', { href: '/signup', 'data-link': true, class: 'btn btn-sm btn-primary' }, 'Join Free')
+            ),
         toggle
       )
     ),

@@ -77,6 +77,21 @@ async function makePasswordHash(password: string): Promise<string> {
   return `${salt}$${h}`;
 }
 
+function sanitizeUsername(input: string): string {
+  return input.toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 20) || 'operative';
+}
+
+async function verifyFirebaseIdToken(idToken: string, audience: string): Promise<any> {
+  if (!idToken || !audience) throw new Error('Missing Firebase token');
+  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+  const data = await res.json().catch(() => null) as any;
+  if (!res.ok || !data) throw new Error(data?.error_description || 'Firebase token verification failed');
+  if (data.aud !== audience) throw new Error('Firebase token audience mismatch');
+  if (data.iss !== 'https://securetoken.google.com/' + data.aud) throw new Error('Firebase token issuer mismatch');
+  if (!data.email || data.email_verified !== 'true' && data.email_verified !== true) throw new Error('Firebase email not verified');
+  return data;
+}
+
 async function getUserFromSession(c: any): Promise<any | null> {
   const token = getCookie(c, 'nexa_session');
   if (!token) return null;
@@ -255,6 +270,52 @@ app.post('/api/auth/login', async (c) => {
   setCookie(c, 'nexa_session', token, { httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 30 });
 
   return c.json({ ok: true, user: { id: user.id, username: user.username, email: user.email, tier: user.tier, coins: user.coins, xp: user.xp, level: user.level } });
+});
+
+app.post('/api/auth/firebase', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const idToken = (body.id_token || '').toString().trim();
+  const firebaseUid = (body.firebase_uid || '').toString().trim();
+  const displayName = (body.display_name || '').toString().trim();
+  const avatar = (body.avatar || '').toString().trim().slice(0, 200);
+
+  const tokenData = await verifyFirebaseIdToken(idToken, c.env.GOOGLE_CLIENT_ID || '');
+  const email = (tokenData.email || body.email || '').toString().trim().toLowerCase();
+  const uid = firebaseUid || tokenData.user_id || tokenData.sub;
+  if (!email || !uid) return c.json({ error: 'invalid_firebase_identity' }, 400);
+
+  const existing = await c.env.DB.prepare(
+    'SELECT id, username, email, tier, coins, xp, level, display_name, avatar, age_verified FROM users WHERE email = ? OR firebase_uid = ?'
+  ).bind(email, uid).first<any>();
+
+  const now = Date.now();
+  let userId = existing?.id;
+  if (!existing) {
+    const base = sanitizeUsername(displayName || email.split('@')[0] || 'operative');
+    const taken = await c.env.DB.prepare('SELECT username FROM users WHERE username = ? OR email = ?').bind(base, email).first<any>();
+    const username = taken ? `${base}_${Math.floor(Math.random() * 9000 + 1000)}`.slice(0, 20) : base;
+    const res = await c.env.DB.prepare(
+      'INSERT INTO users (username, email, password_hash, display_name, avatar, firebase_uid, created_at, last_login) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(username, email, '', displayName || username, avatar || '🤖', uid, now, now).run();
+    userId = res.meta.last_row_id as number;
+  } else {
+    await c.env.DB.prepare(
+      'UPDATE users SET firebase_uid = ?, email = ?, display_name = COALESCE(NULLIF(?, \'\'), display_name), avatar = COALESCE(NULLIF(?, \'\'), avatar), last_login = ? WHERE id = ?'
+    ).bind(uid, email, displayName, avatar, now, existing.id).run();
+  }
+
+  const user = await c.env.DB.prepare(
+    'SELECT id, username, email, tier, coins, xp, level, display_name, avatar, age_verified FROM users WHERE id = ?'
+  ).bind(userId).first<any>();
+  if (!user) return c.json({ error: 'account_sync_failed' }, 500);
+
+  const token = randomHex(32);
+  const expires = now + 1000 * 60 * 60 * 24 * 30;
+  await c.env.DB.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)')
+    .bind(token, user.id, now, expires).run();
+  setCookie(c, 'nexa_session', token, { httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 30 });
+
+  return c.json({ ok: true, user });
 });
 
 app.post('/api/auth/logout', async (c) => {
@@ -861,14 +922,13 @@ app.post('/api/arena/heartbeat', requireAuth, async (c) => {
   return c.json({ ok: true });
 });
 
-app.get('/api/arena/live', async (c) => {
+async function getArenaLiveData(db: D1Database) {
   const now = Date.now();
-  const staleLimit = now - 30000; // 30 seconds stale
+  const staleLimit = now - 30000;
 
-  // Cleanup stale
-  await c.env.DB.prepare('DELETE FROM live_presence WHERE last_heartbeat < ?').bind(staleLimit).run();
+  await db.prepare('DELETE FROM live_presence WHERE last_heartbeat < ?').bind(staleLimit).run();
 
-  const live = await c.env.DB.prepare(`
+  const live = await db.prepare(`
     SELECT lp.*, u.avatar, u.xp, u.level
     FROM live_presence lp
     JOIN users u ON lp.user_id = u.id
@@ -876,9 +936,86 @@ app.get('/api/arena/live', async (c) => {
     LIMIT 10
   `).all<any>();
 
-  return c.json({
+  let activity: any[] = [];
+  try {
+    const recent = await db.prepare(`
+      SELECT u.username, s.game_id, s.score, s.created_at
+      FROM scores s
+      JOIN users u ON s.user_id = u.id
+      ORDER BY s.created_at DESC
+      LIMIT 8
+    `).all<any>();
+    activity = recent.results || [];
+  } catch { /* scores optional */ }
+
+  let tournaments: any[] = [];
+  try {
+    const rows = await db.prepare(`
+      SELECT t.id, t.game_id, t.status, t.ends_at, t.prize_pool, t.participants_active
+      FROM tournaments t
+      WHERE UPPER(t.status) IN ('ACTIVE', 'PENDING') AND (t.ends_at IS NULL OR t.ends_at >= ? OR t.ends_at = 0)
+      ORDER BY t.ends_at ASC
+      LIMIT 4
+    `).bind(now).all<any>();
+    tournaments = rows.results || [];
+  } catch {
+    try {
+      const rows = await db.prepare(`
+        SELECT t.id, t.game_id, t.title, t.starts_at, t.ends_at, t.status
+        FROM tournaments t
+        WHERE t.status != 'closed' AND t.ends_at >= ?
+        ORDER BY t.starts_at ASC
+        LIMIT 4
+      `).bind(now).all<any>();
+      tournaments = rows.results || [];
+    } catch { /* tournaments optional */ }
+  }
+
+  return {
     top_player: live.results[0] || null,
-    live_players: live.results || []
+    live_players: live.results || [],
+    activity,
+    tournaments,
+    ts: now,
+  };
+}
+
+app.get('/api/arena/live', async (c) => {
+  return c.json(await getArenaLiveData(c.env.DB));
+});
+
+app.get('/api/arena/stream', async (c) => {
+  const signal = c.req.raw.signal;
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      const send = async () => {
+        if (signal.aborted) return;
+        try {
+          const data = await getArenaLiveData(c.env.DB);
+          controller.enqueue(
+            encoder.encode(`event: arena_update\ndata: ${JSON.stringify(data)}\n\n`)
+          );
+        } catch {
+          controller.enqueue(encoder.encode(`event: error\ndata: {"message":"sync_failed"}\n\n`));
+        }
+      };
+      await send();
+      while (!signal.aborted) {
+        await new Promise((r) => setTimeout(r, 3000));
+        if (signal.aborted) break;
+        await send();
+      }
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    },
   });
 });
 

@@ -22,6 +22,8 @@ export const firebaseConfig = {
 let _app = null;
 let _analytics = null;
 let _logEvent = null;
+let _auth = null;
+let _googleProvider = null;
 let _ready = null;
 
 /**
@@ -33,9 +35,10 @@ export function initFirebase() {
   if (_ready) return _ready;
   _ready = (async () => {
     try {
-      const [{ initializeApp }, analyticsMod] = await Promise.all([
+      const [{ initializeApp }, analyticsMod, authMod] = await Promise.all([
         import(cdn('app')),
         import(cdn('analytics')),
+        import(cdn('auth')),
       ]);
       _app = initializeApp(firebaseConfig);
 
@@ -45,6 +48,9 @@ export function initFirebase() {
         _analytics = analyticsMod.getAnalytics(_app);
         _logEvent = analyticsMod.logEvent;
       }
+      _auth = authMod.getAuth(_app);
+      _googleProvider = new authMod.GoogleAuthProvider();
+      _googleProvider.setCustomParameters({ prompt: 'select_account' });
       return _app;
     } catch (err) {
       console.warn('[firebase] init skipped:', err?.message || err);
@@ -78,4 +84,20 @@ export function trackEvent(name, params = {}) {
 export async function getFirebaseApp() {
   await initFirebase();
   return _app;
+}
+
+export async function signInWithGoogle() {
+  await initFirebase();
+  if (!_auth || !_googleProvider) throw new Error('Google sign-in is unavailable right now.');
+  const authMod = await import(cdn('auth'));
+  const result = await authMod.signInWithPopup(_auth, _googleProvider);
+  const idToken = await result.user.getIdToken();
+  return { user: result.user, idToken };
+}
+
+export async function signOutFirebase() {
+  await initFirebase();
+  if (!_auth) return;
+  const authMod = await import(cdn('auth'));
+  await authMod.signOut(_auth);
 }

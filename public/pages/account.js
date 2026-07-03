@@ -1,5 +1,5 @@
 import { h, api, toast, state, route } from '../core.js';
-import { trackEvent } from '../firebase.js';
+import { trackEvent, signInWithGoogle } from '../firebase.js';
 
 function AgeVerificationPanel(user) {
   if (user.age_verified) {
@@ -100,6 +100,33 @@ export function LoginPage() {
         h('p', { class: 'auth-sub' }, 'Welcome back, operative.')
       ),
       errEl,
+      h('button', {
+        class: 'btn btn-block btn-google',
+        type: 'button',
+        onClick: async () => {
+          try {
+            const result = await signInWithGoogle();
+            const fbUser = result.user;
+            const profile = await api('/api/auth/firebase', {
+              method: 'POST',
+              body: {
+                id_token: result.idToken,
+                firebase_uid: fbUser.uid,
+                email: fbUser.email,
+                display_name: fbUser.displayName,
+                avatar: fbUser.photoURL,
+              }
+            });
+            state.user = profile.user;
+            localStorage.setItem('nexa_google_user', JSON.stringify(profile.user));
+            trackEvent('login', { method: 'google' });
+            toast('Google sign-in connected.', 'success');
+            route('/account');
+          } catch (err) {
+            toast(err.message || 'Google sign-in failed', 'error');
+          }
+        }
+      }, 'Continue with Google'),
       h('form', { onSubmit },
         h('div', { class: 'form-group' },
           h('label', {}, 'Username or Email'),
