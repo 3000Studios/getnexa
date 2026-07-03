@@ -1,6 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /api/
-Disallow: /account
 
 Sitemap: https://getnexa.space/sitemap.xml
