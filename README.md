@@ -34,15 +34,17 @@ npm run dev
 ## Deploy
 
 ```bash
-npm run db:init     # push schema to production D1
-npm run deploy
+npm run typecheck
+npm run build       # production Worker dry run
+npm run deploy      # deploy through Cloudflare Workers
 ```
 
 ## Google AdSense setup
 
 1. Apply at https://adsense.google.com with `https://getnexa.space`.
-2. Once approved, replace `ca-pub-0000000000000000` in `public/index.html` and the AdSense publisher ID in `src/index.ts` `/ads.txt` handler.
-3. Replace the placeholder `.ad-slot` divs with proper `<ins class="adsbygoogle">` units (see `public/core.js` `AdSlot`).
+2. Keep the verified publisher ID aligned across `public/index.html`, `public/ads.js`, `public/ads.txt`, root `ads.txt`, and the `/ads.txt` Worker handler.
+3. Keep manual ad units disabled until real AdSense slot IDs are configured in `public/ads.js`; the SPA renders no empty ad boxes when slots are blank.
+4. Confirm `/ads.txt`, `/robots.txt`, `/sitemap.xml`, About, Contact, Privacy, Terms, and Cookies all work on the live custom domain before submitting for review.
 
 ## Project structure
 

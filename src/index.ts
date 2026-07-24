@@ -1044,7 +1044,7 @@ app.get('/api/mp/:gameId/:roomId', async (c) => {
 
 // ---------- ads.txt ----------
 app.get('/ads.txt', (c) => c.text('google.com, pub-5800977493749262, DIRECT, f08c47fec0942fa0\n', 200, { 'Content-Type': 'text/plain' }));
-app.get('/robots.txt', (c) => c.text(`User-agent: *\nAllow: /\nSitemap: https://getnexa.space/sitemap.xml\n`, 200, { 'Content-Type': 'text/plain' }));
+app.get('/robots.txt', (c) => c.text(`User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /account\nSitemap: https://getnexa.space/sitemap.xml\n`, 200, { 'Content-Type': 'text/plain' }));
 app.get('/sitemap.xml', async (c) => {
   const xml = await generateSitemap(c.env);
   return c.text(xml, 200, { 'Content-Type': 'application/xml' });
@@ -1178,7 +1178,7 @@ async function appendHourlySpotlight(env: Bindings): Promise<void> {
 async function generateSitemap(env: Bindings): Promise<string> {
   const catalog = await getPublishedCatalog(env);
   const base = env.SITE_URL;
-  const staticPaths = ['', '/games', '/tournaments', '/blog', '/creators', '/about', '/privacy', '/terms', '/shop', '/leaderboards'];
+  const staticPaths = ['', '/games', '/tournaments', '/blog', '/creators', '/leaderboards', '/shop', '/about', '/contact', '/privacy', '/terms', '/cookies'];
   const gamePaths = catalog.order.map(id => `/games/${id}`);
   let blogPaths: string[] = [];
   try {

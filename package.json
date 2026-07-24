@@ -5,6 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/sync-music.js && wrangler dev",
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/sync-music.js && wrangler deploy --dry-run",
     "deploy": "node scripts/sync-music.js && wrangler deploy",
     "db:init": "wrangler d1 execute getnexa-db --file=./schema.sql --remote",
     "db:init-local": "wrangler d1 execute getnexa-db --file=./schema.sql --local",
@@ -19,11 +21,11 @@
     "node": ">=20"
   },
   "dependencies": {
-    "hono": "^4.12.25"
+    "hono": "^4.12.31"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250109.0",
+    "@cloudflare/workers-types": "^5.20260724.1",
     "typescript": "^5.7.3",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.114.0"
   }
 }
