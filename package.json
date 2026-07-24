@@ -19,11 +19,11 @@
     "node": ">=20"
   },
   "dependencies": {
-    "hono": "^4.12.25"
+    "hono": "^4.12.27"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
     "typescript": "^5.7.3",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.114.0"
   }
 }
