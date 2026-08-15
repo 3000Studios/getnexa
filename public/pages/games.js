@@ -14,7 +14,7 @@ const CATEGORIES = {
   racing:     { label: 'Racing',          emoji: '🏎️', ids: ['neondrift','aviator','starblitz','asteroid-dash','flappy-bird','crossy-road','doodle-jump','balloon-pop','tap-tiles','reaction-test'] },
   strategy:   { label: 'Strategy',        emoji: '⚔️', ids: ['chess','tictactoe','tictactoe-ext','solitaire','rps','dice-roll','math-blitz','word-scramble','connect-four','number-guess','sudoku','quiz'] },
   word:       { label: 'Word & Typing',   emoji: '⌨️', ids: ['wordle','hangman','speed-typing','typing-hero','typing-pro','quiz','speak-guess','word-scramble','number-guess','math-blitz'] },
-  multiplayer:{ label: 'Multiplayer',     emoji: '👥', ids: ['tictactoe','tictactoe-ext','pong','ping-pong','chess','connect-four','rps','wordle'] },
+  multiplayer:{ label: 'Multiplayer',     emoji: '👥', ids: ['nexa-arena-3d','tictactoe','tictactoe-ext','pong','ping-pong','chess','connect-four','rps','wordle'] },
   card:       { label: 'Card & Board',    emoji: '🃏', ids: ['solitaire','chess','dice-roll','rps','connect-four','tictactoe','tictactoe-ext','memory','memory-ext','number-guess'] },
 };
 
@@ -652,6 +652,53 @@ function exitGameFullscreen() {
   return exit ? Promise.resolve(exit.call(document)) : Promise.reject();
 }
 
+function MultiplayerPanel(game) {
+  const defaultRoom = new URLSearchParams(location.search).get('room') || 'lobby';
+  const status = h('div', { class: 'mp-status', role: 'status' }, 'Offline');
+  const players = h('div', { class: 'mp-players' }, 'No players connected');
+  const ready = h('button', { class: 'btn btn-sm', disabled: true }, 'Ready Up');
+  const copy = h('button', { class: 'btn btn-sm' }, 'Copy Invite');
+  const room = h('input', { class: 'form-input', value: defaultRoom, maxlength: 32, 'aria-label': 'Multiplayer room code' });
+  let socket = null;
+  let isReady = false;
+  const roomCode = () => (room.value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 32) || 'lobby');
+  const connect = () => {
+    socket?.close();
+    const code = roomCode(); room.value = code;
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    socket = new WebSocket(`${protocol}//${location.host}/api/mp/${encodeURIComponent(game.id)}/${encodeURIComponent(code)}`);
+    status.textContent = 'Connecting…';
+    socket.addEventListener('open', () => { status.textContent = 'Live room: ' + code; ready.disabled = false; });
+    socket.addEventListener('message', (event) => {
+      let msg; try { msg = JSON.parse(event.data); } catch { return; }
+      if (msg.players) players.textContent = msg.players.length ? msg.players.map(p => `${p.ready ? '✓ ' : ''}${p.username}`).join(' · ') : 'Waiting for players';
+      if (msg.type === 'start') status.textContent = 'Match started';
+      if (msg.type === 'reset') { isReady = false; ready.textContent = 'Ready Up'; }
+    });
+    socket.addEventListener('close', () => { status.textContent = 'Disconnected'; ready.disabled = true; });
+    socket.addEventListener('error', () => { status.textContent = 'Room connection failed'; });
+  };
+  ready.addEventListener('click', () => {
+    isReady = !isReady; ready.textContent = isReady ? 'Cancel Ready' : 'Ready Up';
+    if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'ready', ready: isReady }));
+  });
+  copy.addEventListener('click', async () => {
+    const url = `${location.origin}/games/${game.id}?room=${encodeURIComponent(roomCode())}`;
+    await navigator.clipboard.writeText(url); toast('Multiplayer invite copied', 'success');
+  });
+  const join = h('button', { class: 'btn btn-primary btn-sm', onClick: connect }, 'Join Room');
+  const panel = h('div', { class: 'panel multiplayer-panel' },
+    h('h3', {}, 'Multiplayer Room'),
+    h('p', { class: 'mp-copy' }, 'Share a room code, connect, then ready up together.'),
+    h('div', { class: 'mp-room-row' }, room, join), status, players,
+    h('div', { class: 'mp-actions' }, ready, copy)
+  );
+  queueMicrotask(connect);
+  const observer = new MutationObserver(() => { if (!document.body.contains(panel)) { socket?.close(); observer.disconnect(); } });
+  observer.observe(document.body, { childList: true, subtree: true });
+  return panel;
+}
+
 function initGameFullscreen(shellEl, buttons) {
   const btns = (buttons || []).filter(Boolean);
   if (!shellEl || !btns.length) return;
@@ -807,6 +854,7 @@ export function GamePage({ params }) {
       ),
       h('div', {},
         lbPanel,
+        game.multiplayer && MultiplayerPanel(game),
         h('div', { class: 'panel' },
           h('h3', {}, 'Controls'),
           h('div', { style: 'margin-top:4px;' },

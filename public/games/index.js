@@ -10,6 +10,7 @@ import { mountBreakout } from './breakout.js';
 import { mountMinesweeper } from './minesweeper.js';
 import { mountNeonDrift } from './neondrift.js';
 import { mountStarblitz } from './starblitz.js';
+import { mountNexaArena3D } from './nexa-arena-3d.js';
 
 function mountExternalGame(folder) {
   return (container) => {
@@ -34,6 +35,19 @@ function mountExternalGame(folder) {
 }
 
 export const GAMES = [
+  {
+    id: 'nexa-arena-3d',
+    name: 'Nexa Arena 3D',
+    short: 'Full 3D hover-combat with controller support.',
+    description: 'Race through a fully projected neon arena, dodge sentries, collect energy cores, and chain boosts with keyboard, touch, or any standard gamepad.',
+    emoji: '🎮',
+    multiplayer: true,
+    controller: true,
+    new: true,
+    mount: mountNexaArena3D,
+    theme: 3,
+    song: 'Midnight Grind.mp3'
+  },
   {
     id: 'neondrift',
     name: 'Neon Drift',

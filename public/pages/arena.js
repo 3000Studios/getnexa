@@ -6,6 +6,13 @@ export function ArenaPage() {
   const featuredSection = h('div', { class: 'featured-player-arena' }, [
     h('div', { class: 'arena-loading' }, 'SYNCHRONIZING WITH LIVE BATTLE GRID...')
   ]);
+  const broadcastStage = h('div', { class: 'arena-broadcast panel' },
+    h('div', { class: 'arena-broadcast-placeholder' },
+      h('span', { class: 'pulse-dot' }),
+      h('strong', {}, 'CLOUDFLARE LIVE BROADCAST'),
+      h('span', {}, 'Broadcast offline — gameplay telemetry remains live.')
+    )
+  );
 
   const container = h('div', { class: 'container section' },
     h('div', { style: 'text-align:center; margin-bottom: 60px;' },
@@ -17,6 +24,7 @@ export function ArenaPage() {
     h('div', { class: 'panel arena-hero', style: 'padding: 0; overflow: hidden; border-color: var(--neon-purple);' },
       featuredSection
     ),
+    broadcastStage,
 
     h('div', { class: 'row', style: 'margin-top: 60px;' },
       h('div', { class: 'col-lg-8' },
@@ -49,6 +57,17 @@ export function ArenaPage() {
   );
 
   let lastTopPlayerId = null;
+
+  api('/api/arena/broadcast').then(({ live, playbackUrl }) => {
+    if (!live || !playbackUrl) return;
+    broadcastStage.innerHTML = '';
+    const video = h('video', { controls: true, autoplay: true, muted: true, playsinline: true, class: 'arena-broadcast-video' });
+    video.src = playbackUrl;
+    video.addEventListener('error', () => {
+      broadcastStage.innerHTML = '<div class="arena-broadcast-placeholder"><strong>LIVE SIGNAL UNAVAILABLE</strong><span>The Cloudflare playback feed could not be loaded.</span></div>';
+    }, { once: true });
+    broadcastStage.appendChild(video);
+  }).catch(() => {});
 
   function update() {
     api('/api/arena/live').then(data => {

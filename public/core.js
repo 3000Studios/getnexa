@@ -13,6 +13,43 @@ export const state = {
 window.addEventListener('gamepadconnected', () => { state.hasGamepad = true; toast('Gamepad Linked', 'success'); });
 window.addEventListener('gamepaddisconnected', () => { state.hasGamepad = false; });
 
+// Translate standard gamepads into the keyboard controls used by every game.
+// This keeps native and same-origin iframe games controller-compatible without
+// requiring each bundled title to implement the Gamepad API independently.
+const gamepadKeys = new Map();
+const gamepadMap = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', action: ' ', boost: 'Shift' };
+function emitGamepadKey(key, type) {
+  const init = { key, code: key === ' ' ? 'Space' : key, bubbles: true, cancelable: true };
+  window.dispatchEvent(new KeyboardEvent(type, init));
+  document.dispatchEvent(new KeyboardEvent(type, init));
+  const iframe = document.querySelector('.game-stage iframe');
+  try {
+    iframe?.contentWindow?.postMessage({ type: 'nexa-key', key, eventType: type }, location.origin);
+    iframe?.contentWindow?.dispatchEvent(new KeyboardEvent(type, init));
+  } catch {}
+}
+function pollGamepads() {
+  const pad = navigator.getGamepads?.().find(Boolean);
+  const next = new Set();
+  if (pad) {
+    state.hasGamepad = true;
+    const x = Math.abs(pad.axes[0] || 0) > 0.28 ? pad.axes[0] : 0;
+    const y = Math.abs(pad.axes[1] || 0) > 0.28 ? pad.axes[1] : 0;
+    if (x < 0 || pad.buttons[14]?.pressed) next.add(gamepadMap.left);
+    if (x > 0 || pad.buttons[15]?.pressed) next.add(gamepadMap.right);
+    if (y < 0 || pad.buttons[12]?.pressed) next.add(gamepadMap.up);
+    if (y > 0 || pad.buttons[13]?.pressed) next.add(gamepadMap.down);
+    if (pad.buttons[0]?.pressed || pad.buttons[1]?.pressed) next.add(gamepadMap.action);
+    if (pad.buttons[4]?.pressed || pad.buttons[5]?.pressed || pad.buttons[7]?.pressed) next.add(gamepadMap.boost);
+  }
+  for (const key of next) if (!gamepadKeys.has(key)) emitGamepadKey(key, 'keydown');
+  for (const key of gamepadKeys) if (!next.has(key)) emitGamepadKey(key, 'keyup');
+  gamepadKeys.clear();
+  for (const key of next) gamepadKeys.set(key, true);
+  requestAnimationFrame(pollGamepads);
+}
+requestAnimationFrame(pollGamepads);
+
 export function h(tag, attrs = {}, ...children) {
   if (typeof tag === 'function') return tag({ ...attrs, children: children.flat(Infinity) });
   const el = document.createElement(tag);
