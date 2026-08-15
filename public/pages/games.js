@@ -822,7 +822,7 @@ export function GamePage({ params }) {
   const page = h('div', { class: 'container section' },
     h('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px;' },
       h('div', {},
-        h('a', { href: '/games', 'data-link': true, style: 'color:var(--text-muted);font-size:13px;font-family:var(--font-display);letter-spacing:.1em;display:block;margin-bottom:8px;' }, '← GAMES'),
+        h('a', { href: '/games', 'data-link': true, class: 'game-back-link', style: 'color:var(--text-muted);font-size:13px;font-family:var(--font-display);letter-spacing:.1em;display:block;margin-bottom:8px;' }, '← GAMES'),
         h('h1', { style: 'font-family:var(--font-display);font-size:28px;font-weight:800;' }, game.emoji + ' ' + game.name),
         h('p', { style: 'color:var(--text-dim);font-size:14px;margin-top:4px;' }, game.description || game.short)
       ),

@@ -36,6 +36,9 @@ app.use('/api/*', cors({ origin: (o) => o ?? '*', credentials: true }));
 // Security headers + caching — wrap the response so headers are mutable
 app.use('*', async (c, next) => {
   await next();
+  // A WebSocket upgrade response carries runtime-owned upgrade metadata and
+  // cannot be reconstructed with the Fetch Response constructor.
+  if (c.res.status === 101) return;
   const url = new URL(c.req.url);
   const headers = new Headers(c.res.headers);
   headers.set('X-Content-Type-Options', 'nosniff');

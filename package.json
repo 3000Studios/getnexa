@@ -7,6 +7,7 @@
     "dev": "node scripts/sync-music.js && wrangler dev",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/test-games.mjs",
+    "test:multiplayer": "node scripts/test-multiplayer.mjs",
     "build": "node scripts/sync-music.js && wrangler deploy --dry-run",
     "deploy": "node scripts/sync-music.js && wrangler deploy",
     "db:init": "wrangler d1 execute getnexa-db --file=./schema.sql --remote",
