@@ -301,6 +301,7 @@ main{display:block;padding-top:var(--header-h)}
 .mp-status{color:var(--cyan);font-family:var(--font-display);letter-spacing:.08em}
 .mp-room-row,.mp-actions{display:flex;gap:8px;margin-top:12px}.mp-room-row .form-input{min-width:0;flex:1}.mp-actions{flex-wrap:wrap}
 .game-help{text-align:center;margin:10px 0 0;color:var(--text-dim);font-size:13px}.arena-3d-canvas{aspect-ratio:16/9;width:100%;height:auto;touch-action:none}
+.game-stage.nexa-arena-3d-stage{min-height:auto}
 .tournament-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .tournament-title{font-family:var(--font-display);font-size:17px;font-weight:700}
 .tournament-status{flex-shrink:0;padding:3px 10px;border-radius:100px;font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:.1em}
@@ -855,11 +856,11 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,
 
   /* Minimum 44x44 comfortable tap targets (WCAG 2.5.5 / Apple HIG) */
   .btn{min-height:44px}
-  .btn-sm{min-height:40px;padding:11px 18px}
+  .btn-sm{min-height:44px;padding:11px 18px}
   .nav-toggle{width:44px;height:44px;justify-content:center}
-  .cat-pill,.quick-tag{min-height:40px;display:inline-flex;align-items:center}
-  .footer-col a,.footer-legal a,.nav-links a{padding:4px 0;display:inline-block}
-  .mobile-nav a{padding:8px 16px}
+  .cat-pill,.quick-tag{min-height:44px;display:inline-flex;align-items:center}
+  .brand,.nav-logo,.footer-col a,.footer-legal a,.nav-links a,.legal-banner a,.game-back-link{min-width:44px;min-height:44px;display:inline-flex;align-items:center}
+  .mobile-nav a{min-height:44px;padding:8px 16px;display:flex;align-items:center}
 
   /* Game area: fit the screen instead of a fixed 480px block */
   .game-stage{min-height:min(62vh,440px)}

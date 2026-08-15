@@ -1,5 +1,6 @@
 export function mountNexaArena3D(root, { onScore }) {
   root.innerHTML = '';
+  root.classList.add('nexa-arena-3d-stage');
   const canvas = document.createElement('canvas');
   canvas.className = 'game-canvas arena-3d-canvas';
   canvas.width = 960;

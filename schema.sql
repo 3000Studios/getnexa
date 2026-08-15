@@ -89,6 +89,20 @@ CREATE TABLE IF NOT EXISTS tournaments (
 );
 CREATE INDEX IF NOT EXISTS idx_tournaments_status ON tournaments(status, ends_at);
 
+-- Current multiplayer/arena presence. Heartbeats older than 30 seconds are
+-- removed by the Worker before live data is returned.
+CREATE TABLE IF NOT EXISTS live_presence (
+  user_id INTEGER PRIMARY KEY,
+  username TEXT NOT NULL,
+  game_id TEXT NOT NULL,
+  score INTEGER NOT NULL DEFAULT 0,
+  last_heartbeat INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'playing',
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_live_presence_heartbeat ON live_presence(last_heartbeat);
+CREATE INDEX IF NOT EXISTS idx_live_presence_score ON live_presence(score DESC);
+
 CREATE TABLE IF NOT EXISTS tournament_entries (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   tournament_id INTEGER NOT NULL,
