@@ -31,6 +31,22 @@ npm run db:init-local
 npm run dev
 ```
 
+Validate the full game catalog and Worker bundle before release:
+
+```bash
+npm test
+npm run typecheck
+npm run build
+```
+
+## Cloudflare live broadcast
+
+The Live Arena reads a public HLS or DASH playback URL from the Worker binding
+`STREAM_PLAYBACK_URL`. Configure it after creating the Cloudflare live input.
+Never expose or commit the RTMPS/WHIP ingest key, Cloudflare API token, or
+account credentials. Without the playback binding, the Arena stays available
+and displays an offline broadcast state while game telemetry continues.
+
 ## Deploy
 
 ```bash

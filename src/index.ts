@@ -21,6 +21,7 @@ type Bindings = PayBindings & {
   GOOGLE_CLIENT_ID?: string;
   DISCORD_WEBHOOK_URL?: string;
   TURNSTILE_SECRET_KEY?: string;
+  STREAM_PLAYBACK_URL?: string;
 };
 
 type Variables = {
@@ -982,6 +983,13 @@ async function getArenaLiveData(db: D1Database) {
 
 app.get('/api/arena/live', async (c) => {
   return c.json(await getArenaLiveData(c.env.DB));
+});
+
+// Public playback only. Ingest keys and Cloudflare API credentials must never
+// be returned to the browser or stored in source control.
+app.get('/api/arena/broadcast', (c) => {
+  const playbackUrl = c.env.STREAM_PLAYBACK_URL?.trim();
+  return c.json({ live: Boolean(playbackUrl), playbackUrl: playbackUrl || null });
 });
 
 app.get('/api/arena/stream', async (c) => {
