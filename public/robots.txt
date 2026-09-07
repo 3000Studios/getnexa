@@ -3,4 +3,7 @@ Allow: /
 Disallow: /api/
 Disallow: /account
 
+User-agent: Mediapartners-Google
+Allow: /
+
 Sitemap: https://getnexa.space/sitemap.xml
