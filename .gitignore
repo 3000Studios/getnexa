@@ -22,3 +22,6 @@ firebase-service-account*.json
 .gitleaks-report.json
 .trivy-report.json
 .semgrep/
+
+# AI editor session dumps (never commit)
+.kilocode/
