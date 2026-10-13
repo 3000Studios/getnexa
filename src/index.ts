@@ -132,7 +132,7 @@ const GAME_RELEASE_QUEUE = [
   'minesweeper',
   'tictactoe',
   'pong',
-  'candy-crush',
+  'candy-match',
   'pacman',
   'chess',
   'doodle-jump',

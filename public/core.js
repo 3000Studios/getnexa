@@ -117,7 +117,7 @@ function matchRoute(routes, pathname) {
 
 export function setSEO(data = {}) {
   const title = data.title ? data.title + ' | NEXA ARCADE' : 'NEXA ARCADE — Free Browser Games';
-  const desc = data.description || 'Play 50+ free browser games with live leaderboards, real-time multiplayer, and tournaments. No downloads required.';
+  const desc = data.description || 'Play 58 free browser games with live leaderboards, real-time multiplayer, and tournaments. No downloads required.';
   document.title = title;
   document.querySelector('meta[name="description"]')?.setAttribute('content', desc);
   let script = document.getElementById('aeo-ld');
@@ -279,7 +279,7 @@ function buildFooter() {
       h('div', { class: 'footer-grid' },
         h('div', {},
           h('div', { class: 'footer-brand' }, 'NEXA'),
-          h('p', { class: 'footer-tagline' }, '50+ free browser games. Real leaderboards. Live tournaments. No downloads required.')
+          h('p', { class: 'footer-tagline' }, '58 free browser games. Real leaderboards. Live tournaments. No downloads required.')
         ),
         h('div', { class: 'footer-col' },
           h('h4', {}, 'Play'),

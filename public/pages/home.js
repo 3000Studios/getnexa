@@ -1,32 +1,7 @@
-import { h, api, route, setSEO, AdSlot } from '../core.js';
+import { h, route, setSEO, AdSlot } from '../core.js';
 import { GAMES } from '../games/index.js';
 
-function LiveCounter() {
-  const el = h('span', { class: 'live-count' }, '...');
-  api('/api/stats/real-time').then(d => { el.textContent = Number(d.users || 0).toLocaleString(); }).catch(() => { el.textContent = '0'; });
-  return el;
-}
-
-function RecentWins() {
-  const scroll = h('div', { class: 'ticker-scroll' });
-  const content = h('span', { class: 'ticker-content' }, 'SYNCHRONIZING LIVE DATA...');
-  scroll.appendChild(content);
-
-  const update = () => {
-    api('/api/stats/real-time').then(data => {
-      if (!data.activity || !data.activity.length) return;
-      const parts = data.activity.map(a =>
-        `<span class="win-player">${a.username}</span> scored <span class="win-score">${Number(a.score).toLocaleString()}</span> in ${a.game_id}`
-      ).join('  •  ');
-      content.innerHTML = parts + '  •  ' + parts;
-    }).catch(() => {});
-  };
-  setInterval(update, 12000);
-  update();
-  return scroll;
-}
-
-const FEATURED_GAMES = GAMES.filter(g => g.new || ['neondrift', 'starblitz', 'chess', 'hextris', 'aviator', 'overdrive', 'slash-saber', 'candy-crush'].includes(g.id)).slice(0, 8);
+const FEATURED_GAMES = GAMES.filter(g => g.new || ['neondrift', 'starblitz', 'chess', 'hextris', 'aviator', 'overdrive', 'slash-saber', 'candy-match'].includes(g.id)).slice(0, 8);
 
 const GAME_COLORS = [
   ['#1a0a3a', '#0a0a2a'],
@@ -73,7 +48,7 @@ function GameCardHome(game, index) {
 export function HomePage() {
   setSEO({
     title: 'NEXA ARCADE — Free Browser Games',
-    description: 'Play 50+ free browser games with live leaderboards, real-time multiplayer, and paid tournaments. No downloads. Instant play.',
+    description: 'Play 58 free browser games with live leaderboards, real-time multiplayer, and tournaments. No downloads. Instant play.',
     extra: { potentialAction: { '@type': 'PlayAction', target: 'https://getnexa.space/games' } }
   });
 
@@ -81,7 +56,7 @@ export function HomePage() {
     ['⚡', 'Zero-Latency Gaming'],
     ['🏆', 'Live Tournaments'],
     ['🌍', 'Global Leaderboards'],
-    ['🎮', '50+ Games'],
+    ['🎮', '58 Games'],
     ['🛡️', 'Anti-Cheat Protection'],
     ['💰', 'Free to Play'],
     ['📱', 'Mobile Ready'],
@@ -100,12 +75,11 @@ export function HomePage() {
       h('div', { class: 'hero-glow', 'aria-hidden': 'true' }),
       h('div', { class: 'container' },
         h('div', { class: 'hero-badge reveal-text' },
-          h('span', { class: 'pulse-dot' }),
-          ' LIVE — ', LiveCounter(), ' OPERATIVES ACTIVE'
+          '⚡ INSTANT PLAY — NO DOWNLOADS'
         ),
         h('h1', { class: 'hero-title reveal-text' }, 'NEXA'),
         h('p', { class: 'hero-sub reveal-text' },
-          '50+ free browser games. Real leaderboards. Live multiplayer. No downloads, no lag — just play.'
+          '58 free browser games. Real leaderboards. Live multiplayer. No downloads, no lag — just play.'
         ),
         h('div', { class: 'hero-btns reveal-text' },
           h('button', { onClick: () => route('/games'), class: 'btn btn-primary btn-lg' }, '🎮 Play Now — Free'),
@@ -113,7 +87,7 @@ export function HomePage() {
         ),
         h('div', { class: 'hero-stats reveal-text' },
           h('div', {},
-            h('div', { class: 'stat-num' }, '50+'),
+            h('div', { class: 'stat-num' }, '58'),
             h('div', { class: 'stat-label' }, 'Games Available')
           ),
           h('div', {},
@@ -121,22 +95,14 @@ export function HomePage() {
             h('div', { class: 'stat-label' }, 'Free to Play')
           ),
           h('div', {},
-            h('div', { class: 'stat-num' }, '0ms'),
-            h('div', { class: 'stat-label' }, 'Download Required')
+            h('div', { class: 'stat-num' }, '0'),
+            h('div', { class: 'stat-label' }, 'Downloads Required')
           ),
           h('div', {},
             h('div', { class: 'stat-num' }, '24/7'),
             h('div', { class: 'stat-label' }, 'Live Tournaments')
           )
         )
-      )
-    ),
-
-    /* ── TICKER ── */
-    h('div', { class: 'live-ticker', 'aria-live': 'polite', 'aria-label': 'Recent player activity' },
-      h('div', { class: 'ticker-inner container' },
-        h('div', { class: 'ticker-label' }, '⚡ LIVE OPS'),
-        RecentWins()
       )
     ),
 
@@ -157,7 +123,7 @@ export function HomePage() {
           ...FEATURED_GAMES.map((g, i) => GameCardHome(g, i))
         ),
         h('div', { style: 'text-align:center;margin-top:48px;' },
-          h('button', { onClick: () => route('/games'), class: 'btn btn-lg' }, 'Browse All 50+ Games →')
+          h('button', { onClick: () => route('/games'), class: 'btn btn-lg' }, 'Browse All 58 Games →')
         )
       )
     ),
@@ -177,12 +143,12 @@ export function HomePage() {
           h('div', { class: 'feature-card reveal-card' },
             h('span', { class: 'feature-icon' }, '⚡'),
             h('h3', {}, 'Zero-Latency Engine'),
-            h('p', {}, 'Powered by Cloudflare\'s edge network with 200+ global locations. Sub-5ms input latency — your reaction time is the only bottleneck.')
+            h('p', {}, 'Powered by Cloudflare\'s edge network with 200+ global locations. Games load fast and controls respond instantly — your reaction time is the only bottleneck.')
           ),
           h('div', { class: 'feature-card reveal-card' },
             h('span', { class: 'feature-icon' }, '🏆'),
             h('h3', {}, 'Live Tournaments'),
-            h('p', {}, 'Compete in daily and weekly tournaments with real prize pools. Enter free or stake coins for higher rewards.')
+            h('p', {}, 'Compete in daily and weekly tournaments for coins, cosmetics, and leaderboard glory. Enter free or stake coins for bigger coin rewards.')
           ),
           h('div', { class: 'feature-card reveal-card' },
             h('span', { class: 'feature-icon' }, '🌍'),
@@ -218,12 +184,12 @@ export function HomePage() {
         ),
         h('div', { style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;' },
           ...[
-            { emoji: '🚀', label: 'Action & Arcade', count: '12 games', desc: 'Fast reflexes, intense action', cat: 'action' },
-            { emoji: '🧩', label: 'Puzzle & Strategy', count: '14 games', desc: 'Brain-bending challenges', cat: 'puzzle' },
-            { emoji: '🏎️', label: 'Racing & Speed', count: '4 games', desc: 'High-speed thrills', cat: 'racing' },
-            { emoji: '🃏', label: 'Card & Board', count: '8 games', desc: 'Classic tabletop action', cat: 'card' },
-            { emoji: '⌨️', label: 'Typing & Word', count: '6 games', desc: 'Test your vocabulary', cat: 'word' },
-            { emoji: '⚔️', label: 'Strategy & RPG', count: '5 games', desc: 'Tactical battles', cat: 'strategy' },
+            { emoji: '🚀', label: 'Action & Arcade', count: '14 games', desc: 'Fast reflexes, intense action', cat: 'action' },
+            { emoji: '🧩', label: 'Puzzle & Strategy', count: '21 games', desc: 'Brain-bending challenges', cat: 'puzzle' },
+            { emoji: '🏎️', label: 'Racing & Speed', count: '10 games', desc: 'High-speed thrills', cat: 'racing' },
+            { emoji: '🃏', label: 'Card & Board', count: '10 games', desc: 'Classic tabletop action', cat: 'card' },
+            { emoji: '⌨️', label: 'Typing & Word', count: '10 games', desc: 'Test your vocabulary', cat: 'word' },
+            { emoji: '⚔️', label: 'Strategy & RPG', count: '12 games', desc: 'Tactical battles', cat: 'strategy' },
           ].map(({ emoji, label, count, desc, cat }) =>
             h('div', {
               class: 'feature-card reveal-card',

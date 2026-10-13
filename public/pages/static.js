@@ -14,7 +14,7 @@ const CONTENT = {
         <li>Live leaderboards, cross-device cloud saves, XP/level system, coins, achievements.</li>
       </ul>
       <h3>What's next</h3>
-      <p>Weekly new titles, tournaments with prize pools, a creator program to publish your own games on Nexa, friend lists, and a lot more. Subscribe to our newsletter on the home page to follow along.</p>
+      <p>Weekly new titles, tournaments with coin prize pools, a creator program to publish your own games on Nexa, friend lists, and a lot more. Subscribe to our newsletter on the home page to follow along.</p>
       <h3>Built on Cloudflare</h3>
       <p>Every page, every game, every multiplayer room is served from Cloudflare's global edge. That means fast load times wherever you are, and infrastructure that scales with our community.</p>
     `,

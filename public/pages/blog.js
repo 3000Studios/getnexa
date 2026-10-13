@@ -165,7 +165,7 @@ export function BlogArticlePage({ params }) {
         h('div', { class: 'blog-article-footer' },
           h('div', { class: 'panel', style: 'text-align:center; padding: 32px;' },
             h('h3', { style: 'margin-bottom:12px;' }, '🎮 Ready to Play?'),
-            h('p', { style: 'color:var(--text-dim); margin-bottom:20px;' }, 'Put these strategies to work with 50+ free games — no download required.'),
+            h('p', { style: 'color:var(--text-dim); margin-bottom:20px;' }, 'Put these strategies to work with 58 free games — no download required.'),
             h('a', { href: '/games', 'data-link': true, class: 'btn btn-primary btn-lg' }, 'Play Free Games →')
           )
         ),

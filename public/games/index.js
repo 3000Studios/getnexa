@@ -161,7 +161,7 @@ export const GAMES = [
     song: 'alec_koff-carnaval-484622.mp3'
   },
   // --- External Games ---
-  { id: 'candy-crush', name: 'Candy Crush', short: 'Match candies to win.', emoji: '🍬', mount: mountExternalGame('01-Candy-Crush-Game'), theme: 1, song: 'betty boom boom.mp3' },
+  { id: 'candy-match', name: 'Candy Match', short: 'Match candies to win.', emoji: '🍬', mount: mountExternalGame('01-Candy-Match-Game'), theme: 1, song: 'betty boom boom.mp3' },
   { id: 'pacman', name: 'Pac-Man', short: 'Eat dots and avoid ghosts.', emoji: '🍕', mount: mountExternalGame('02-Pac-Man-Game'), theme: 2, song: 'alexzavesa-dance-playful-night-510786.mp3' },
   { id: 'chess', name: 'Chess', short: 'Classic game of strategy.', emoji: '♟️', mount: mountExternalGame('03-Chess-Game'), theme: 3, song: 'ikoliks_aj-spring-easter-day-music-320427.mp3', multiplayer: true },
   { id: 'doodle-jump', name: 'Doodle Jump', short: 'Jump as high as you can.', emoji: '🪜', mount: mountExternalGame('04-Doodle-Jump-Game'), theme: 4, song: 'kontraa-water-afro-pop-music-445661.mp3' },

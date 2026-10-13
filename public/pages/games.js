@@ -10,7 +10,7 @@ const CATEGORIES = {
   new:        { label: 'New',             emoji: '⭐' },
   action:     { label: 'Action',          emoji: '🚀', ids: ['neondrift','starblitz','fruit-slicer','whack-a-mole','emoji-catcher','insect-catch','shape-clicker','archery','balloon-pop','asteroid-dash','reaction-test','tap-tiles','breakout','snake'] },
   puzzle:     { label: 'Puzzle',          emoji: '🧩', ids: ['2048','2048-ext','tetris','tetris-ext','memory','memory-ext','minesweeper','minesweeper-ext','wordle','hangman','sudoku','tilting-maze','sliding-puzzle','hextris','tower-blocks','connect-four','number-guess','simon-says','color-flash','bubble-pop','math-blitz'] },
-  arcade:     { label: 'Arcade',          emoji: '🕹️', ids: ['snake','snake-ext','breakout','breakout-ext','pong','ping-pong','flappy-bird','pacman','doodle-jump','crossy-road','candy-crush','insect-catch','shape-clicker','balloon-pop','tap-tiles','fruit-slicer'] },
+  arcade:     { label: 'Arcade',          emoji: '🕹️', ids: ['snake','snake-ext','breakout','breakout-ext','pong','ping-pong','flappy-bird','pacman','doodle-jump','crossy-road','candy-match','insect-catch','shape-clicker','balloon-pop','tap-tiles','fruit-slicer'] },
   racing:     { label: 'Racing',          emoji: '🏎️', ids: ['neondrift','aviator','starblitz','asteroid-dash','flappy-bird','crossy-road','doodle-jump','balloon-pop','tap-tiles','reaction-test'] },
   strategy:   { label: 'Strategy',        emoji: '⚔️', ids: ['chess','tictactoe','tictactoe-ext','solitaire','rps','dice-roll','math-blitz','word-scramble','connect-four','number-guess','sudoku','quiz'] },
   word:       { label: 'Word & Typing',   emoji: '⌨️', ids: ['wordle','hangman','speed-typing','typing-hero','typing-pro','quiz','speak-guess','word-scramble','number-guess','math-blitz'] },
@@ -353,22 +353,6 @@ export function GameCard(game, index = 0) {
   return card;
 }
 
-/* ── Activity ticker ── */
-function GlobalActivityTicker() {
-  const content = h('span', { class: 'ticker-content' }, '⚡ NEXA GRID ACTIVE — MISSIONS IN PROGRESS...');
-  const el = h('div', { class: 'activity-ticker' }, h('div', { class: 'container' }, content));
-  const update = () => {
-    api('/api/stats/real-time').then(data => {
-      if (!data.activity?.length) return;
-      content.innerHTML = data.activity.map(a =>
-        '⚡ <strong>' + a.username + '</strong> scored ' + Number(a.score).toLocaleString() + ' in ' + a.game_id
-      ).join(' &nbsp;•&nbsp; ');
-    }).catch(() => {});
-  };
-  setInterval(update, 30000); update();
-  return el;
-}
-
 /* ── Games Page ── */
 export function GamesPage({ query }) {
   let currentCat = query?.get('cat') || 'all';
@@ -546,7 +530,6 @@ export function GamesPage({ query }) {
     updateSearchGrid(searchQ);
   }
 
-  pageWrap.appendChild(GlobalActivityTicker());
   pageWrap.appendChild(h('div', { class: 'container section archive-section' },
     h('header', { class: 'archive-header' },
       h('div', { class: 'archive-header-copy' },
