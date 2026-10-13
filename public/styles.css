@@ -903,3 +903,38 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,
 @media(max-width:600px){.product-actions{flex-direction:column}.row .btn{flex:1 1 100%}}
 .btn-google{background:linear-gradient(135deg,#fff,#e8eefc);color:#111827;border-color:#c7d2fe}
 .btn-google:hover{background:linear-gradient(135deg,#fff,#dbeafe)}
+
+/* ── THUNDERDOME PROMO (home, main screen) ─────────────────────────────── */
+.td-promo{position:relative;padding:84px 0;overflow:hidden;background:
+  radial-gradient(ellipse 60% 90% at 85% 20%, rgba(245,158,11,.10), transparent 60%),
+  radial-gradient(ellipse 55% 80% at 8% 85%, rgba(124,58,237,.14), transparent 60%),
+  linear-gradient(180deg, rgba(255,255,255,.015), rgba(255,255,255,0));
+  border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.td-promo-inner{display:grid;grid-template-columns:1.15fr .85fr;gap:56px;align-items:center}
+.td-tag{display:inline-block;font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(245,158,11,.4);border-radius:999px;padding:6px 14px;margin-bottom:26px;background:rgba(245,158,11,.06)}
+.td-brandrow{display:flex;align-items:center;gap:18px}
+.td-icon{width:72px;height:72px;border-radius:16px;box-shadow:0 0 32px rgba(245,158,11,.35);flex-shrink:0}
+.td-title{font-family:var(--font-display);font-size:clamp(34px,4.6vw,58px);font-weight:900;letter-spacing:.06em;line-height:1.02;background:linear-gradient(120deg,#fff 20%,var(--gold) 55%,#ff7847 90%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.td-sub{color:var(--text-dim);font-size:17px;line-height:1.7;max-width:540px;margin:20px 0 18px}
+.td-status{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);font-size:12px;font-weight:700;letter-spacing:.18em;color:#34d399;margin-bottom:20px}
+.td-points{list-style:none;margin:0 0 30px;padding:0;display:grid;gap:10px}
+.td-points li{color:var(--text);font-size:15px}
+.td-ctas{display:flex;gap:14px;flex-wrap:wrap}
+.td-fineprint{color:var(--text-muted,rgba(241,245,249,.55));font-size:12.5px;line-height:1.6;max-width:520px;margin-top:18px}
+.td-stage{display:flex;justify-content:center}
+.td-phone{position:relative;width:min(300px,78vw);aspect-ratio:540/1200;border-radius:38px;padding:10px;background:linear-gradient(160deg,#1b1e2e,#0a0b14);border:1px solid var(--border-bright);box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 60px rgba(245,158,11,.14)}
+.td-notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:96px;height:22px;border-radius:0 0 14px 14px;background:#05060a;z-index:3}
+.td-video{width:100%;height:100%;object-fit:cover;border-radius:30px;display:block;background:#000}
+.td-phone-caption{position:absolute;left:14px;right:14px;bottom:16px;z-index:2;font-size:10.5px;letter-spacing:.04em;color:rgba(255,255,255,.85);background:rgba(5,6,10,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:10px;padding:7px 10px;text-align:center}
+@media(max-width:900px){
+  .td-promo{padding:60px 0}
+  .td-promo-inner{grid-template-columns:1fr;gap:40px}
+  .td-sub,.td-fineprint{max-width:none}
+  .td-stage{order:2}
+  .td-phone{width:min(260px,72vw)}
+  .td-ctas .btn{flex:1 1 100%;text-align:center}
+}
+@media (prefers-reduced-motion: reduce){
+  .td-video{display:none}
+  .td-phone{background:#000 url('/thunderdome/td-poster.jpg') center/cover no-repeat;min-height:420px}
+}

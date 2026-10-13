@@ -13,12 +13,21 @@ const GAME_COLORS = [
 ];
 const GLOW_COLORS = ['#7c3aed', '#00e5ff', '#10b981', '#f59e0b', '#ef4444', '#a855f7'];
 
+/* Cache the preview-video list once per page load instead of fetching per card. */
+let _homeVideosPromise = null;
+function getHomeVideos() {
+  if (!_homeVideosPromise) {
+    _homeVideosPromise = fetch('/Videos/videos.json').then(r => r.json()).catch(() => []);
+  }
+  return _homeVideosPromise;
+}
+
 function GameCardHome(game, index) {
   const [c1, c2] = GAME_COLORS[index % GAME_COLORS.length];
   const glow = GLOW_COLORS[index % GLOW_COLORS.length];
   const video = document.createElement('video');
   video.className = 'game-card-video'; video.muted = true; video.loop = true; video.playsInline = true;
-  fetch('/Videos/videos.json').then(r => r.json()).then(v => { video.src = '/Videos/' + v[Math.floor(Math.random() * v.length)]; }).catch(() => {});
+  getHomeVideos().then(v => { if (v.length) video.src = '/Videos/' + v[Math.floor(Math.random() * v.length)]; }).catch(() => {});
 
   const badge = game.new ? h('div', { class: 'game-card-badge new' }, 'NEW')
     : game.multiplayer ? h('div', { class: 'game-card-badge mp' }, 'MULTIPLAYER')
@@ -45,6 +54,78 @@ function GameCardHome(game, index) {
   return card;
 }
 
+/* ── THUNDERDOME promo — studio spotlight / ad preview ─────────────────────
+   Honest framing: the game is in closed beta on Android. No public download,
+   no store ratings/reviews exist, so none are claimed. All claims below are
+   mirrored from the game's official site (thunderdome.store). */
+const TD_URL = 'https://thunderdome.store';
+
+function ThunderdomePromo() {
+  const video = document.createElement('video');
+  video.className = 'td-video';
+  video.muted = true;
+  video.loop = true;
+  video.playsInline = true;
+  video.autoplay = true;
+  video.preload = 'metadata';
+  video.poster = '/thunderdome/td-poster.jpg';
+  video.setAttribute('aria-label', 'Thunderdome cinematic trailer preview');
+  const srcWebm = document.createElement('source');
+  srcWebm.src = '/thunderdome/td-preview.webm'; srcWebm.type = 'video/webm';
+  const srcMp4 = document.createElement('source');
+  srcMp4.src = '/thunderdome/td-preview.mp4'; srcMp4.type = 'video/mp4';
+  video.appendChild(srcWebm); video.appendChild(srcMp4);
+
+  /* Only burn bandwidth/CPU while the preview is on screen. */
+  if (typeof IntersectionObserver !== 'undefined') {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) video.play().catch(() => {});
+        else video.pause();
+      });
+    }, { threshold: 0.25 });
+    io.observe(video);
+  }
+
+  return h('section', { class: 'td-promo', 'aria-label': 'Thunderdome — a 3000 Studios game' },
+    h('div', { class: 'container td-promo-inner' },
+      h('div', { class: 'td-copy' },
+        h('div', { class: 'td-tag' }, 'Studio Spotlight · Ad Preview'),
+        h('div', { class: 'td-brandrow' },
+          h('img', { src: '/thunderdome/td-icon.webp', alt: 'Thunderdome helmet icon', class: 'td-icon', width: '72', height: '72', loading: 'lazy' }),
+          h('div', {},
+            h('div', { class: 'eyebrow', style: 'margin-bottom:6px;' }, 'From 3000 Studios'),
+            h('h2', { class: 'td-title' }, 'THUNDERDOME')
+          )
+        ),
+        h('p', { class: 'td-sub' },
+          'Aerial combat over a dying world. A 24-boss roster, real-time multiplayer dogfights, and one dome with no mercy — the flagship Android game from the studio behind Nexa Arcade.'
+        ),
+        h('div', { class: 'td-status' }, '● Closed Beta — Now Boarding'),
+        h('ul', { class: 'td-points' },
+          h('li', {}, '🎯 24 bosses across four threat tiers'),
+          h('li', {}, '👥 Real-time multiplayer battles'),
+          h('li', {}, '🎁 Beta testers get a free 1-year season pass at launch')
+        ),
+        h('div', { class: 'td-ctas' },
+          h('a', { href: TD_URL, target: '_blank', rel: 'noopener', class: 'btn btn-primary btn-lg' }, 'Claim Your Beta Spot →'),
+          h('a', { href: TD_URL, target: '_blank', rel: 'noopener', class: 'btn btn-lg' }, 'Watch the Trailer')
+        ),
+        h('p', { class: 'td-fineprint' },
+          'Thunderdome is in closed beta testing on Android — there is no public download yet. Beta sign-up and the official trailer live at thunderdome.store.'
+        )
+      ),
+      h('div', { class: 'td-stage' },
+        h('div', { class: 'td-phone' },
+          h('div', { class: 'td-notch', 'aria-hidden': 'true' }),
+          video,
+          h('div', { class: 'td-phone-caption' }, 'Official cinematic preview — sound on at thunderdome.store')
+        )
+      )
+    )
+  );
+}
+
 export function HomePage() {
   setSEO({
     title: 'NEXA ARCADE — Free Browser Games',
@@ -53,7 +134,7 @@ export function HomePage() {
   });
 
   const featureItems = [
-    ['⚡', 'Zero-Latency Gaming'],
+    ['⚡', 'Fast Edge Network'],
     ['🏆', 'Live Tournaments'],
     ['🌍', 'Global Leaderboards'],
     ['🎮', '58 Games'],
@@ -79,7 +160,7 @@ export function HomePage() {
         ),
         h('h1', { class: 'hero-title reveal-text' }, 'NEXA'),
         h('p', { class: 'hero-sub reveal-text' },
-          '58 free browser games. Real leaderboards. Live multiplayer. No downloads, no lag — just play.'
+          '58 free browser games. Real leaderboards. Live multiplayer. No downloads, no installs — just play.'
         ),
         h('div', { class: 'hero-btns reveal-text' },
           h('button', { onClick: () => route('/games'), class: 'btn btn-primary btn-lg' }, '🎮 Play Now — Free'),
@@ -99,12 +180,15 @@ export function HomePage() {
             h('div', { class: 'stat-label' }, 'Downloads Required')
           ),
           h('div', {},
-            h('div', { class: 'stat-num' }, '24/7'),
-            h('div', { class: 'stat-label' }, 'Live Tournaments')
+            h('div', { class: 'stat-num' }, '2P'),
+            h('div', { class: 'stat-label' }, 'Real-Time Multiplayer')
           )
         )
       )
     ),
+
+    /* ── THUNDERDOME PROMO (main-screen studio spotlight) ── */
+    ThunderdomePromo(),
 
     /* ── FEATURE STRIP ── */
     h('div', { class: 'feature-strip', 'aria-hidden': 'true' },
@@ -117,7 +201,7 @@ export function HomePage() {
         h('div', { class: 'section-head' },
           h('div', { class: 'eyebrow' }, 'Featured'),
           h('h2', {}, 'Top Operations'),
-          h('p', {}, 'The highest-rated missions on the grid right now.')
+          h('p', {}, 'Hand-picked missions from the Nexa catalog — new drops and multiplayer favorites first.')
         ),
         h('div', { class: 'games-grid' },
           ...FEATURED_GAMES.map((g, i) => GameCardHome(g, i))
@@ -142,8 +226,8 @@ export function HomePage() {
         h('div', { class: 'feature-grid' },
           h('div', { class: 'feature-card reveal-card' },
             h('span', { class: 'feature-icon' }, '⚡'),
-            h('h3', {}, 'Zero-Latency Engine'),
-            h('p', {}, 'Powered by Cloudflare\'s edge network with 200+ global locations. Games load fast and controls respond instantly — your reaction time is the only bottleneck.')
+            h('h3', {}, 'Edge-Powered Engine'),
+            h('p', {}, 'Served from Cloudflare\'s global edge network, close to wherever you play. Games load fast and controls respond instantly — your reaction time is the only bottleneck.')
           ),
           h('div', { class: 'feature-card reveal-card' },
             h('span', { class: 'feature-icon' }, '🏆'),

@@ -1,4 +1,4 @@
-import { h, api, AdSlot, state, toast, route } from '../core.js';
+import { h, api, AdSlot, state, toast, route, setSEO } from '../core.js';
 import { trackEvent } from '../firebase.js';
 import { GAMES, findGame } from '../games/index.js';
 import { setAdaptiveTheme } from '../bg-3d.js';
@@ -355,6 +355,11 @@ export function GameCard(game, index = 0) {
 
 /* ── Games Page ── */
 export function GamesPage({ query }) {
+  setSEO({
+    title: 'Game Vault — ' + GAMES.length + ' Free Browser Games',
+    description: 'Browse and search ' + GAMES.length + ' free browser games by category — action, puzzle, arcade, racing, strategy, word and typing, card & board, and real-time multiplayer. No downloads, instant play.',
+    type: 'CollectionPage'
+  });
   let currentCat = query?.get('cat') || 'all';
   let searchQ = query?.get('q') || '';
 
@@ -740,6 +745,14 @@ function VirtualControls() {
 /* ── Game Page ── */
 export function GamePage({ params }) {
   const game = findGame(params.id);
+  if (game) {
+    setSEO({
+      title: 'Play ' + game.name + ' Free Online',
+      description: (game.description || game.short || '') + ' Play ' + game.name + ' free in your browser on NEXA Arcade — no downloads, live leaderboards' + (game.multiplayer ? ', real-time multiplayer.' : '.'),
+      type: 'WebApplication',
+      extra: { genre: game.name, offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' } }
+    });
+  }
   if (!game) {
     return h('div', { class: 'container section', style: 'text-align:center;padding-top:160px;' },
       h('h1', { style: 'font-family:var(--font-display);font-size:40px;margin-bottom:16px;' }, 'Game Not Found'),
