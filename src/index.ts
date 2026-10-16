@@ -8,6 +8,7 @@ import {
   capturePaypalOrder,
   type PayBindings,
 } from './payments';
+import { GAME_INFO } from './game-info';
 
 export { GameRoom } from './game-room';
 
@@ -1061,61 +1062,87 @@ app.get('/sitemap.xml', async (c) => {
   return c.text(xml, 200, { 'Content-Type': 'application/xml' });
 });
 
-// ---------- Programmatic SEO / AEO Interceptor ----------
+// ---------- Game pages for crawlers (real content, same substance as the app) ----------
+// 2026-10-16 AdSense fix: the previous handler served identical templated
+// filler ("Master the grid in X...") for every game. That is precisely the
+// scaled low-value content Google flags. Crawlers now get a real page built
+// from GAME_INFO — the game's actual name, description, rules, and strategy —
+// matching what players see and play in the app.
 app.get('/games/:id', async (c) => {
   const userAgent = c.req.header('user-agent') || '';
   const isBot = /bot|googlebot|crawler|spider|robot|crawling|openai|perplexity/i.test(userAgent);
   const gameId = c.req.param('id');
-  
+
   // If not a bot, let the SPA handle it via ASSETS.fetch
   if (!isBot) return c.env.ASSETS.fetch(c.req.raw);
 
-  // Bot identified: Serve high-density SEO/AEO payload
-  const game = GAME_RELEASE_QUEUE.find(id => id === gameId);
-  if (!game) return c.env.ASSETS.fetch(c.req.raw);
+  const info = GAME_INFO[gameId];
+  if (!info) return c.env.ASSETS.fetch(c.req.raw);
 
-  const title = `${gameId.toUpperCase()} | NEXA ARCADE - Strategy & High Performance`;
-  const desc = `Master the grid in ${gameId}. Zero-latency browser gaming at its peak. Synchronize your neural console now.`;
-  
-  return c.html(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <title>${title}</title>
-      <meta name="description" content="${desc}">
-      <meta property="og:title" content="${title}">
-      <meta property="og:description" content="${desc}">
-      <meta property="og:url" content="${c.env.SITE_URL}/games/${gameId}">
-      <meta property="og:type" content="website">
-      <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "VideoGame",
-        "name": "${gameId}",
-        "description": "${desc}",
-        "url": "${c.env.SITE_URL}/games/${gameId}",
-        "applicationCategory": "GameApplication",
-        "operatingSystem": "Web"
-      }
-      </script>
-    </head>
-    <body>
-      <h1>${title}</h1>
-      <p>${desc}</p>
-      <section>
-        <h2>Nexa Strategy: How to win at ${gameId}</h2>
-        <ul>
-          <li>Focus on high-velocity input synchronization.</li>
-          <li>Monitor the neural grid for cache drops (Loot Boxes).</li>
-          <li>Maintain 60fps focus to minimize reactive latency.</li>
-        </ul>
-      </section>
-      <a href="${c.env.SITE_URL}/games/${gameId}">Play Now</a>
-    </body>
-    </html>
-  `);
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const title = `${info.name} — Play Free Online | NEXA Arcade`;
+  const desc = info.about.length > 300 ? info.about.slice(0, 297) + '...' : info.about;
+  const howList = info.how.map((s) => `<li>${esc(s)}</li>`).join('');
+  const tipList = info.tips.map((s) => `<li>${esc(s)}</li>`).join('');
+  const others = Object.entries(GAME_INFO)
+    .filter(([id, g]) => id !== gameId && g.category === info.category)
+    .slice(0, 6)
+    .map(([id, g]) => `<li><a href="https://getnexa.space/games/${id}">${esc(g.name)}</a></li>`)
+    .join('');
+
+  return c.html(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${esc(title)}</title>
+  <meta name="description" content="${esc(desc)}">
+  <meta property="og:title" content="${esc(title)}">
+  <meta property="og:description" content="${esc(desc)}">
+  <meta property="og:url" content="https://getnexa.space/games/${gameId}">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://getnexa.space/games/${gameId}">
+  <script type="application/ld+json">${JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'VideoGame',
+    name: info.name,
+    description: info.about,
+    url: `https://getnexa.space/games/${gameId}`,
+    applicationCategory: 'GameApplication',
+    operatingSystem: 'Web',
+    genre: info.category,
+  })}</script>
+</head>
+<body>
+  <nav><a href="https://getnexa.space/">NEXA Arcade</a> · <a href="https://getnexa.space/games">All Games</a> · <a href="https://getnexa.space/blog">Guides &amp; Strategy</a></nav>
+  <h1>${esc(info.name)}</h1>
+  <p><em>${esc(info.category)} game — free to play in your browser, no download.</em></p>
+  <section>
+    <h2>About ${esc(info.name)}</h2>
+    <p>${esc(info.about)}</p>
+  </section>
+  <section>
+    <h2>How to Play ${esc(info.name)}</h2>
+    <ul>${howList}</ul>
+  </section>
+  <section>
+    <h2>${esc(info.name)} Tips &amp; Strategy</h2>
+    <ul>${tipList}</ul>
+  </section>
+  <p><a href="https://getnexa.space/games/${gameId}">Play ${esc(info.name)} now — free at NEXA Arcade</a></p>
+  <section>
+    <h2>More ${esc(info.category)} Games</h2>
+    <ul>${others}</ul>
+  </section>
+  <footer>
+    <a href="https://getnexa.space/privacy">Privacy Policy</a> ·
+    <a href="https://getnexa.space/terms">Terms</a> ·
+    <a href="https://getnexa.space/about">About NEXA Arcade</a> ·
+    <a href="https://getnexa.space/contact">Contact</a>
+  </footer>
+</body>
+</html>`);
 });
+
 
 /* ─── Blog API ──────────────────────────── */
 app.get('/api/blog', async (c) => {

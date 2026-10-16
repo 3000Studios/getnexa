@@ -20,7 +20,7 @@ h1{font-size:clamp(20px,5vw,36px);font-weight:900;letter-spacing:.1em;margin-bot
 #start-btn{margin-top:20px;background:#a855f7;color:#fff;border:none;padding:12px 36px;border-radius:100px;font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:.12em;cursor:pointer;transition:all .2s}
 #start-btn:hover{background:#c084fc;transform:translateY(-2px);box-shadow:0 8px 24px rgba(168,85,247,.5)}
 </style>
-</head><body>
+<meta name="description" content="Color Flash is a memory challenge in the Simon tradition: colors flash in sequence and you reproduce the pattern. What begins as three gentle flashes becom"></head><body>
 <h1>COLOR FLASH</h1>
 <div id="sub">Simon Says — remember the sequence</div>
 <div id="hud"><div>LEVEL <span id="lvl">1</span></div><div>SCORE <span id="sc">0</span></div><div>BEST <span id="best">0</span></div></div>
@@ -120,4 +120,12 @@ document.getElementById('start-btn').onclick=startGame;
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 </script>
+<!-- nexa-game-content -->
+<section class="nexa-game-info" style="max-width:820px;margin:24px auto;padding:20px 22px;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.65;color:#e8eaf2;background:rgba(10,12,24,.92);border:1px solid rgba(120,130,255,.25);border-radius:12px;text-align:left">
+<h2 style="margin:0 0 8px">About Color Flash</h2>
+<p>Color Flash is a memory challenge in the Simon tradition: colors flash in sequence and you reproduce the pattern. What begins as three gentle flashes becomes a long chain that tests how you chunk and rehearse sequences under mild pressure.</p>
+<h3>How to Play</h3><ul><li>Watch each color as it flashes.</li><li>Repeat the pattern in exact order.</li><li>The sequence grows by one flash each round.</li><li>A single mistake ends the attempt.</li></ul>
+<h3>Tips &amp; Strategy</h3><ul><li>Name the colors silently as they flash.</li><li>Group the pattern into threes once it passes six steps.</li><li>If you lose your place, replay the rhythm — tempo is a memory cue.</li></ul>
+<p><a href="https://getnexa.space/games/color-flash" style="color:#8ab4ff">Play Color Flash at NEXA Arcade</a> · <a href="https://getnexa.space/games" style="color:#8ab4ff">Browse all free games</a> · <a href="https://getnexa.space/blog" style="color:#8ab4ff">Strategy guides</a></p>
+</section>
 </body></html>
